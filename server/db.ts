@@ -23,7 +23,16 @@ import {
 } from '../src/types/crm';
 import { UserCredential, SessionRecord, hashPassword, generateSessionToken } from './auth';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+// Use /tmp on serverless environments where project root is read-only
+const getStorageDir = (): string => {
+  const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  if (isServerless) {
+    return path.resolve('/tmp', 'orvexa_data');
+  }
+  return path.resolve(process.cwd(), 'data');
+};
+
+const DATA_DIR = getStorageDir();
 const DB_FILE = path.resolve(DATA_DIR, 'orvexa_crm_db.json');
 
 export interface DatabaseSchema {
@@ -129,6 +138,17 @@ const getInitialSeedData = (): DatabaseSchema => {
       phone: '+1 (415) 890-2306',
       active: true,
       createdAt: '2026-02-20T08:45:00.000Z',
+    },
+    {
+      id: 'usr_zubair_super_admin',
+      name: 'Zubair',
+      email: 'zubair669262@gmail.com',
+      role: 'super_admin',
+      title: 'Senior Manager',
+      department: 'Admin',
+      phone: '+1 (415) 890-2300',
+      active: true,
+      createdAt: '2026-01-15T08:00:00.000Z',
     },
   ];
 
@@ -1162,9 +1182,6 @@ class DatabaseStore {
 
   private loadFromDisk(): DatabaseSchema {
     try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
@@ -1183,6 +1200,16 @@ class DatabaseStore {
         if (!parsed.sessions) {
           parsed.sessions = [];
         }
+        return parsed;
+      }
+
+      // If running on serverless with /tmp, check if original bundled data file exists in workspace
+      const bundledDbPath = path.resolve(process.cwd(), 'data', 'orvexa_crm_db.json');
+      if (bundledDbPath !== DB_FILE && fs.existsSync(bundledDbPath)) {
+        const raw = fs.readFileSync(bundledDbPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (!parsed.sessions) parsed.sessions = [];
+        this.saveToDisk(parsed);
         return parsed;
       }
     } catch (err) {

@@ -75,7 +75,7 @@ export const requireRoles = (...allowedRoles: Role[]) => {
  */
 apiRouter.post('/auth/login', (req: Request, res: Response) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const { email, password, rememberMe } = req.body || {};
 
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
       return res.status(400).json({ error: 'Email and password are required.' });
@@ -103,7 +103,7 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
 
     const session = db.createSession(user.id, !!rememberMe);
 
-    res.json({
+    return res.json({
       success: true,
       token: session.token,
       user,
@@ -111,8 +111,8 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
       company: db.getCompany(),
     });
   } catch (err: any) {
-    console.error('[AUTH] Login failure:', err);
-    res.status(500).json({ error: 'Internal authentication service error.' });
+    console.error('[AUTH] Login processing error:', err?.message || err);
+    return res.status(500).json({ error: 'Unable to sign in. Please try again.' });
   }
 });
 

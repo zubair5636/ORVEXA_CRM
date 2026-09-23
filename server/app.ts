@@ -1,9 +1,26 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { apiRouter } from './routes';
 
 export const app = express();
 
-app.use(express.json());
+// Safe JSON body parser that handles both raw streams and pre-parsed bodies (e.g. Vercel Serverless)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // If the serverless environment or upstream proxy already parsed the body into an object
+  if (req.body && typeof req.body === 'object') {
+    return next();
+  }
+
+  // Otherwise, use express.json() to read from the stream
+  express.json()(req, res, next);
+});
+
+// Also support URL-encoded if applicable
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.body && typeof req.body === 'object') {
+    return next();
+  }
+  express.urlencoded({ extended: true })(req, res, next);
+});
 
 // Mount API endpoints under /api
 app.use('/api', apiRouter);
