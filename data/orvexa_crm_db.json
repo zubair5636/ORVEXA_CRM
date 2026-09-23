@@ -1,0 +1,1438 @@
+{
+  "company": {
+    "id": "comp_01",
+    "name": "ORVEXA Enterprise Suite",
+    "logo": "",
+    "address": "100 Montgomery Street, Suite 2400, San Francisco, CA 94104",
+    "phone": "+1 (415) 890-2300",
+    "email": "operations@orvexa.io",
+    "taxId": "US-EIN-94-3829104",
+    "currency": "USD",
+    "currencySymbol": "$",
+    "timezone": "America/Los_Angeles",
+    "industry": "digital_agency"
+  },
+  "users": [
+    {
+      "id": "usr_super_admin",
+      "name": "Marcus Vance",
+      "email": "marcus.vance@orvexa.io",
+      "role": "super_admin",
+      "title": "Chief Executive Officer",
+      "department": "Executive Leadership",
+      "phone": "+1 (415) 890-2301",
+      "active": true,
+      "createdAt": "2026-01-15T08:00:00.000Z"
+    },
+    {
+      "id": "usr_admin",
+      "name": "Elena Rostova",
+      "email": "elena.rostova@orvexa.io",
+      "role": "admin",
+      "title": "VP of Business Operations",
+      "department": "Operations",
+      "phone": "+1 (415) 890-2302",
+      "active": true,
+      "createdAt": "2026-01-15T08:30:00.000Z"
+    },
+    {
+      "id": "usr_manager",
+      "name": "David Chen",
+      "email": "david.chen@orvexa.io",
+      "role": "manager",
+      "title": "Head of Commercial Sales",
+      "department": "Sales & Revenue",
+      "phone": "+1 (415) 890-2303",
+      "active": true,
+      "createdAt": "2026-02-01T09:00:00.000Z"
+    },
+    {
+      "id": "usr_sales_exec",
+      "name": "Sarah Jenkins",
+      "email": "sarah.jenkins@orvexa.io",
+      "role": "sales_executive",
+      "title": "Senior Account Executive",
+      "department": "Sales & Revenue",
+      "phone": "+1 (415) 890-2304",
+      "active": true,
+      "createdAt": "2026-02-10T10:00:00.000Z"
+    },
+    {
+      "id": "usr_support",
+      "name": "Alex Rivera",
+      "email": "alex.rivera@orvexa.io",
+      "role": "support_agent",
+      "title": "Customer Success Specialist",
+      "department": "Customer Success",
+      "phone": "+1 (415) 890-2305",
+      "active": true,
+      "createdAt": "2026-02-15T11:00:00.000Z"
+    },
+    {
+      "id": "usr_accountant",
+      "name": "Michael Torres",
+      "email": "michael.torres@orvexa.io",
+      "role": "accountant",
+      "title": "Financial Controller",
+      "department": "Finance & Accounting",
+      "phone": "+1 (415) 890-2306",
+      "active": true,
+      "createdAt": "2026-02-20T08:45:00.000Z"
+    },
+    {
+      "name": "Zubair",
+      "email": "zubair669262@gmail.com",
+      "role": "super_admin",
+      "title": "Senior Manager",
+      "department": "Admin",
+      "active": true,
+      "id": "usr_1790187818527_561",
+      "createdAt": "2026-09-23T18:23:38.527Z"
+    }
+  ],
+  "leads": [
+    {
+      "id": "lead_01",
+      "fullName": "Rahul Sharma",
+      "company": "Sharma Apex Holdings",
+      "email": "rahul@apexholdings.in",
+      "phone": "+91 98201 44521",
+      "altPhone": "+91 98201 44522",
+      "source": "Google Inbound",
+      "status": "won",
+      "priority": "urgent",
+      "leadScore": 100,
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "expectedValue": 35000,
+      "nextFollowUp": "2026-09-24",
+      "notes": "Requested complete multi-currency CRM proposal with custom WhatsApp business integration.",
+      "tags": [
+        "High Net Worth",
+        "Priority Q3",
+        "Automotive & Logistics"
+      ],
+      "industry": "Automotive & Logistics",
+      "createdAt": "2026-09-10T09:30:00.000Z",
+      "updatedAt": "2026-09-23T17:32:56.161Z",
+      "convertedCustomerId": "cust_1790184776160_741"
+    },
+    {
+      "id": "lead_02",
+      "fullName": "Ananya Deshmukh",
+      "company": "Deshmukh Wellness Centers",
+      "email": "ananya@deshmukhwellness.com",
+      "phone": "+91 99870 12345",
+      "source": "Referral",
+      "status": "negotiation",
+      "priority": "high",
+      "leadScore": 88,
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "expectedValue": 24000,
+      "nextFollowUp": "2026-09-23",
+      "notes": "Final contract terms review scheduled. Negotiating multi-clinic discount tier.",
+      "tags": [
+        "Clinics",
+        "Ready to Close",
+        "Referral"
+      ],
+      "industry": "Clinics & Healthcare",
+      "createdAt": "2026-09-12T11:00:00.000Z",
+      "updatedAt": "2026-09-23T17:02:28.359Z"
+    },
+    {
+      "id": "lead_03",
+      "fullName": "Patrick O’Connor",
+      "company": "Emerald Coast Luxury Homes",
+      "email": "patrick@emeraldcoastluxury.com",
+      "phone": "+1 (305) 555-8833",
+      "source": "LinkedIn Campaign",
+      "status": "qualified",
+      "priority": "high",
+      "leadScore": 78,
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "expectedValue": 42000,
+      "nextFollowUp": "2026-09-25",
+      "notes": "Looking to replace outdated Salesforce setup. Demo went great with their managing partners.",
+      "tags": [
+        "Real Estate",
+        "Salesforce Replacement"
+      ],
+      "industry": "Real Estate",
+      "createdAt": "2026-09-14T14:00:00.000Z",
+      "updatedAt": "2026-09-23T17:02:28.359Z"
+    },
+    {
+      "id": "lead_04",
+      "fullName": "Mei-Ling Zhou",
+      "company": "OmniGrowth Marketing Lab",
+      "email": "mlzhou@omnigrowthlab.io",
+      "phone": "+65 6789 2311",
+      "source": "Product Hunt",
+      "status": "contacted",
+      "priority": "medium",
+      "leadScore": 65,
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "expectedValue": 16000,
+      "nextFollowUp": "2026-09-26",
+      "notes": "Completed initial exploratory call. Shared technical whitepaper and case studies.",
+      "tags": [
+        "Digital Agency",
+        "APAC"
+      ],
+      "industry": "Digital Agency",
+      "createdAt": "2026-09-16T08:15:00.000Z",
+      "updatedAt": "2026-09-23T17:02:28.359Z"
+    },
+    {
+      "id": "lead_05",
+      "fullName": "Garrett Vance",
+      "company": "Vance Performance Gyms",
+      "email": "garrett@vanceperformance.com",
+      "phone": "+1 (480) 555-6677",
+      "source": "Direct Inbound",
+      "status": "new",
+      "priority": "medium",
+      "leadScore": 54,
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "expectedValue": 12000,
+      "nextFollowUp": "2026-09-23",
+      "notes": "Submitted contact form requesting appointment management and trainer commission tracker.",
+      "tags": [
+        "Gyms & Wellness",
+        "New Lead"
+      ],
+      "industry": "Gyms & Wellness",
+      "createdAt": "2026-09-22T10:00:00.000Z",
+      "updatedAt": "2026-09-23T17:02:28.359Z"
+    },
+    {
+      "id": "lead_06",
+      "fullName": "Kavita Rao",
+      "company": "Zenith Legal & Partners",
+      "email": "kavita.rao@zenithlegal.in",
+      "phone": "+91 98450 99881",
+      "source": "Webinar",
+      "status": "new",
+      "priority": "low",
+      "leadScore": 48,
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "expectedValue": 19000,
+      "nextFollowUp": "2026-09-27",
+      "notes": "Attended the Enterprise Security & Compliance masterclass. Need follow-up introductory deck.",
+      "tags": [
+        "Professional Services",
+        "Compliance"
+      ],
+      "industry": "Professional Services",
+      "createdAt": "2026-09-21T15:20:00.000Z",
+      "updatedAt": "2026-09-23T17:02:28.359Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": "cust_1790184776160_741",
+      "name": "Rahul Sharma",
+      "company": "Sharma Apex Holdings",
+      "email": "rahul@apexholdings.in",
+      "phone": "+91 98201 44521",
+      "alternatePhone": "+91 98201 44522",
+      "address": "",
+      "status": "active",
+      "lifetimeValue": 35000,
+      "industry": "Automotive & Logistics",
+      "tags": [
+        "High Net Worth",
+        "Priority Q3",
+        "Automotive & Logistics",
+        "Lead Converted"
+      ],
+      "notes": "Converted from lead (lead_01). Initial notes: Requested complete multi-currency CRM proposal with custom WhatsApp business integration.",
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "createdAt": "2026-09-23T17:32:56.160Z",
+      "updatedAt": "2026-09-23T17:32:56.160Z"
+    },
+    {
+      "id": "cust_01",
+      "name": "Julian Henderson",
+      "company": "Nova Realty Group",
+      "email": "j.henderson@novarealty.com",
+      "phone": "+1 (212) 555-0143",
+      "address": "745 5th Ave, Floor 18, New York, NY 10151",
+      "city": "New York",
+      "country": "USA",
+      "status": "active",
+      "lifetimeValue": 45000,
+      "industry": "Real Estate",
+      "tags": [
+        "Enterprise",
+        "Commercial Real Estate",
+        "High Value"
+      ],
+      "notes": "Managing 14 commercial high-rises in Manhattan. Transitioning 120 brokers to Orvexa.",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "createdAt": "2026-02-01T10:00:00.000Z",
+      "updatedAt": "2026-03-01T15:00:00.000Z"
+    },
+    {
+      "id": "cust_02",
+      "name": "Dr. Aris Thorne",
+      "company": "MediCore Diagnostics & Clinic",
+      "email": "thorne@medicorehealth.org",
+      "phone": "+1 (312) 555-8921",
+      "address": "420 E Superior St, Chicago, IL 60611",
+      "city": "Chicago",
+      "country": "USA",
+      "status": "active",
+      "lifetimeValue": 28500,
+      "industry": "Clinics & Healthcare",
+      "tags": [
+        "Healthcare",
+        "Specialty Clinic",
+        "Recurring"
+      ],
+      "notes": "Four regional clinics. Uses Orvexa appointment booking and recurring billing.",
+      "assignedTo": "usr_manager",
+      "assignedUserName": "David Chen",
+      "createdAt": "2026-02-12T14:30:00.000Z",
+      "updatedAt": "2026-03-05T11:20:00.000Z"
+    },
+    {
+      "id": "cust_03",
+      "name": "Vikram Mehta",
+      "company": "Vertex Fitness & Athletic Centers",
+      "email": "vikram@vertexfit.co",
+      "phone": "+1 (512) 555-7744",
+      "address": "800 Congress Ave, Austin, TX 78701",
+      "city": "Austin",
+      "country": "USA",
+      "status": "active",
+      "lifetimeValue": 19800,
+      "industry": "Gyms & Wellness",
+      "tags": [
+        "Fitness",
+        "Multi-Location"
+      ],
+      "notes": "Fitness network with 8 boutique locations. Fast-growing membership pipeline.",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "createdAt": "2026-02-18T16:00:00.000Z",
+      "updatedAt": "2026-03-10T09:15:00.000Z"
+    },
+    {
+      "id": "cust_04",
+      "name": "Claire Dupont",
+      "company": "Acme Digital Solutions",
+      "email": "claire@acmedigital.io",
+      "phone": "+1 (415) 555-3290",
+      "address": "500 Howard St, San Francisco, CA 94105",
+      "city": "San Francisco",
+      "country": "USA",
+      "status": "active",
+      "lifetimeValue": 32000,
+      "industry": "Digital Agency",
+      "tags": [
+        "Agency",
+        "Partner Program"
+      ],
+      "notes": "Full service digital engineering agency. Integrates Orvexa across all client accounts.",
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "createdAt": "2026-02-25T11:00:00.000Z",
+      "updatedAt": "2026-03-12T13:40:00.000Z"
+    },
+    {
+      "id": "cust_05",
+      "name": "Samantha Ward",
+      "company": "BrightPath Academy",
+      "email": "sward@brightpathedu.com",
+      "phone": "+1 (617) 555-9012",
+      "address": "100 Cambridge St, Boston, MA 02114",
+      "city": "Boston",
+      "country": "USA",
+      "status": "active",
+      "lifetimeValue": 15500,
+      "industry": "Coaching & Education",
+      "tags": [
+        "Education",
+        "Executive Training"
+      ],
+      "notes": "Executive certification programs. Manages student enrollments and corporate deals.",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "createdAt": "2026-03-01T08:30:00.000Z",
+      "updatedAt": "2026-03-18T10:00:00.000Z"
+    }
+  ],
+  "deals": [
+    {
+      "id": "deal_1790184776162_368",
+      "name": "Sharma Apex Holdings — Commercial Contract",
+      "customerId": "cust_1790184776160_741",
+      "customerName": "Sharma Apex Holdings",
+      "value": 35000,
+      "currency": "USD",
+      "stage": "proposal",
+      "probability": 60,
+      "expectedCloseDate": "2026-10-23",
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "notes": "Originated from Lead conversion of Rahul Sharma.",
+      "createdAt": "2026-09-23T17:32:56.160Z",
+      "updatedAt": "2026-09-23T17:32:56.160Z"
+    },
+    {
+      "id": "deal_01",
+      "name": "Nova Realty — Enterprise Brokerage Migration",
+      "customerId": "cust_01",
+      "customerName": "Nova Realty Group",
+      "value": 45000,
+      "currency": "USD",
+      "stage": "won",
+      "probability": 100,
+      "expectedCloseDate": "2026-02-28",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "productIds": [
+        "prod_01",
+        "prod_02",
+        "prod_03"
+      ],
+      "notes": "Closed successfully. Onboarding completed across 14 commercial branches.",
+      "createdAt": "2026-02-05T10:00:00.000Z",
+      "updatedAt": "2026-02-28T18:00:00.000Z"
+    },
+    {
+      "id": "deal_02",
+      "name": "MediCore — 4 Clinic Patient Scheduling Suite",
+      "customerId": "cust_02",
+      "customerName": "MediCore Diagnostics & Clinic",
+      "value": 28500,
+      "currency": "USD",
+      "stage": "won",
+      "probability": 100,
+      "expectedCloseDate": "2026-03-01",
+      "assignedTo": "usr_manager",
+      "assignedUserName": "David Chen",
+      "productIds": [
+        "prod_01",
+        "prod_04",
+        "prod_05"
+      ],
+      "notes": "Deployed with dedicated HIPAA compliant encryption and patient reminders.",
+      "createdAt": "2026-02-14T09:00:00.000Z",
+      "updatedAt": "2026-03-01T17:00:00.000Z"
+    },
+    {
+      "id": "deal_03",
+      "name": "Vertex Fitness — Franchise Member Tracking Expansion",
+      "customerId": "cust_03",
+      "customerName": "Vertex Fitness & Athletic Centers",
+      "value": 19800,
+      "currency": "USD",
+      "stage": "negotiation",
+      "probability": 85,
+      "expectedCloseDate": "2026-09-30",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "productIds": [
+        "prod_01",
+        "prod_02"
+      ],
+      "notes": "Adding 4 new fitness franchises in Dallas and Houston.",
+      "createdAt": "2026-08-15T11:30:00.000Z",
+      "updatedAt": "2026-09-18T14:10:00.000Z"
+    },
+    {
+      "id": "deal_04",
+      "name": "Acme Digital — White-Label Partner Program",
+      "customerId": "cust_04",
+      "customerName": "Acme Digital Solutions",
+      "value": 32000,
+      "currency": "USD",
+      "stage": "proposal",
+      "probability": 65,
+      "expectedCloseDate": "2026-10-15",
+      "assignedTo": "usr_super_admin",
+      "assignedUserName": "Marcus Vance",
+      "productIds": [
+        "prod_01",
+        "prod_05"
+      ],
+      "notes": "Structuring partner co-selling contract for 20 client accounts.",
+      "createdAt": "2026-08-28T14:00:00.000Z",
+      "updatedAt": "2026-09-15T10:00:00.000Z"
+    },
+    {
+      "id": "deal_05",
+      "name": "BrightPath — Executive Academy LMS & Pipeline",
+      "customerId": "cust_05",
+      "customerName": "BrightPath Academy",
+      "value": 15500,
+      "currency": "USD",
+      "stage": "qualified",
+      "probability": 40,
+      "expectedCloseDate": "2026-10-31",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "productIds": [
+        "prod_01"
+      ],
+      "notes": "Demonstrated corporate lead routing and student certification pipelines.",
+      "createdAt": "2026-09-02T13:00:00.000Z",
+      "updatedAt": "2026-09-16T15:20:00.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_01",
+      "title": "Review custom billing terms with Michael Torres",
+      "description": "Check tax exemptions and invoice schedule for Nova Realty renewal.",
+      "priority": "high",
+      "status": "pending",
+      "dueDate": "2026-09-23",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "relatedCustomerId": "cust_01",
+      "relatedCustomerName": "Nova Realty Group",
+      "createdAt": "2026-09-20T08:00:00.000Z",
+      "updatedAt": "2026-09-23T17:51:23.885Z"
+    },
+    {
+      "id": "task_02",
+      "title": "Deliver executive presentation to Rahul Sharma",
+      "description": "Prepare custom API architecture and multi-unit pricing slide deck.",
+      "priority": "urgent",
+      "status": "in_progress",
+      "dueDate": "2026-09-24",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "relatedLeadId": "lead_01",
+      "relatedLeadName": "Rahul Sharma",
+      "createdAt": "2026-09-18T10:00:00.000Z",
+      "updatedAt": "2026-09-21T11:00:00.000Z"
+    },
+    {
+      "id": "task_03",
+      "title": "Complete security questionnaire for MediCore",
+      "description": "Provide SOC2 report, encryption certifications, and backup recovery logs.",
+      "priority": "medium",
+      "status": "pending",
+      "dueDate": "2026-09-15",
+      "assignedTo": "usr_admin",
+      "assignedUserName": "Elena Rostova",
+      "relatedCustomerId": "cust_02",
+      "relatedCustomerName": "MediCore Diagnostics & Clinic",
+      "createdAt": "2026-09-10T09:00:00.000Z",
+      "updatedAt": "2026-09-23T17:51:26.311Z"
+    },
+    {
+      "id": "task_04",
+      "title": "Follow up on overdue invoice INV-2026-004",
+      "description": "Contact accounts payable at Acme Digital for wire confirmation.",
+      "priority": "high",
+      "status": "pending",
+      "dueDate": "2026-09-23",
+      "assignedTo": "usr_accountant",
+      "assignedUserName": "Michael Torres",
+      "relatedCustomerId": "cust_04",
+      "relatedCustomerName": "Acme Digital Solutions",
+      "createdAt": "2026-09-21T13:00:00.000Z",
+      "updatedAt": "2026-09-21T13:00:00.000Z"
+    }
+  ],
+  "followUps": [
+    {
+      "id": "fu_01",
+      "title": "Contract negotiation closing call",
+      "type": "call",
+      "relatedType": "lead",
+      "relatedId": "lead_02",
+      "relatedName": "Ananya Deshmukh",
+      "assignedTo": "usr_manager",
+      "assignedUserName": "David Chen",
+      "date": "2026-09-23",
+      "time": "14:30",
+      "notes": "Finalize multi-clinic license agreement and payment terms.",
+      "status": "pending",
+      "createdAt": "2026-09-20T10:00:00.000Z"
+    },
+    {
+      "id": "fu_02",
+      "title": "WhatsApp message on revised commercial proposal",
+      "type": "whatsapp",
+      "relatedType": "lead",
+      "relatedId": "lead_01",
+      "relatedName": "Rahul Sharma",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "date": "2026-09-23",
+      "time": "16:00",
+      "notes": "Share updated quote breakdown with automotive module included.",
+      "status": "pending",
+      "createdAt": "2026-09-21T09:30:00.000Z"
+    },
+    {
+      "id": "fu_03",
+      "title": "Quarterly relationship review meeting",
+      "type": "meeting",
+      "relatedType": "customer",
+      "relatedId": "cust_01",
+      "relatedName": "Julian Henderson",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "date": "2026-09-25",
+      "time": "11:00",
+      "notes": "Review broker adoption rates and discuss Q4 expansion.",
+      "status": "pending",
+      "createdAt": "2026-09-18T14:00:00.000Z"
+    },
+    {
+      "id": "fu_04",
+      "title": "Onboarding check-in email",
+      "type": "email",
+      "relatedType": "customer",
+      "relatedId": "cust_03",
+      "relatedName": "Vikram Mehta",
+      "assignedTo": "usr_sales_exec",
+      "assignedUserName": "Sarah Jenkins",
+      "date": "2026-09-20",
+      "time": "10:00",
+      "notes": "Check member sync status with trainer scheduling app.",
+      "status": "completed",
+      "createdAt": "2026-09-15T09:00:00.000Z"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "appt_01",
+      "title": "Product Demo: Multi-Location CRM Architecture",
+      "leadId": "lead_01",
+      "leadName": "Rahul Sharma",
+      "employeeId": "usr_sales_exec",
+      "employeeName": "Sarah Jenkins",
+      "date": "2026-09-24",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "type": "demo",
+      "location": "Google Meet / Conference Room A",
+      "notes": "Presenting live pipeline automation, role hierarchy, and accounting integrations.",
+      "reminderMinutes": 15,
+      "status": "confirmed",
+      "createdAt": "2026-09-19T11:00:00.000Z"
+    },
+    {
+      "id": "appt_02",
+      "title": "Executive Strategic Alignment & Licensing",
+      "leadId": "lead_02",
+      "leadName": "Ananya Deshmukh",
+      "employeeId": "usr_manager",
+      "employeeName": "David Chen",
+      "date": "2026-09-23",
+      "startTime": "14:30",
+      "endTime": "15:15",
+      "type": "consultation",
+      "location": "Virtual Conference",
+      "notes": "Doctor consultation board members attending for sign-off.",
+      "reminderMinutes": 30,
+      "status": "scheduled",
+      "createdAt": "2026-09-20T12:00:00.000Z"
+    },
+    {
+      "id": "appt_03",
+      "title": "Nova Realty Annual Review & Expansion Staging",
+      "customerId": "cust_01",
+      "customerName": "Nova Realty Group",
+      "employeeId": "usr_sales_exec",
+      "employeeName": "Sarah Jenkins",
+      "date": "2026-09-25",
+      "startTime": "11:00",
+      "endTime": "12:30",
+      "type": "review",
+      "location": "Nova Realty HQ, 745 5th Ave, Floor 18, NY",
+      "notes": "In-person meeting with Julian Henderson and commercial broker team leads.",
+      "reminderMinutes": 60,
+      "status": "confirmed",
+      "createdAt": "2026-09-18T14:30:00.000Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod_01",
+      "name": "Enterprise CRM Annual License",
+      "sku": "ORV-ENT-ANN",
+      "type": "product",
+      "description": "Dedicated cloud CRM deployment with custom API access, RBAC, and priority SLA.",
+      "price": 18000,
+      "taxRate": 8.5,
+      "discount": 10,
+      "active": true,
+      "category": "Software Subscriptions",
+      "createdAt": "2026-01-20T00:00:00.000Z"
+    },
+    {
+      "id": "prod_02",
+      "name": "Custom ERP & Integration Onboarding",
+      "sku": "ORV-SRV-ONB",
+      "type": "service",
+      "description": "Full white-glove migration, legacy database schema mapping, and pipeline automation setup.",
+      "price": 6500,
+      "taxRate": 8.5,
+      "discount": 0,
+      "active": true,
+      "category": "Professional Services",
+      "createdAt": "2026-01-20T00:00:00.000Z"
+    },
+    {
+      "id": "prod_03",
+      "name": "Commercial Real Estate Property Suite",
+      "sku": "ORV-IND-RE",
+      "type": "product",
+      "description": "Specialized tenant tracking, floorplan staging leads, and lease pipeline management.",
+      "price": 12500,
+      "taxRate": 8.5,
+      "discount": 5,
+      "active": true,
+      "category": "Industry Packs",
+      "createdAt": "2026-01-25T00:00:00.000Z"
+    },
+    {
+      "id": "prod_04",
+      "name": "Clinic & Patient Care Management Add-on",
+      "sku": "ORV-IND-MED",
+      "type": "product",
+      "description": "Patient consultation scheduling, physician task boards, and HIPAA-ready audit notes.",
+      "price": 9500,
+      "taxRate": 8.5,
+      "discount": 0,
+      "active": true,
+      "category": "Industry Packs",
+      "createdAt": "2026-02-01T00:00:00.000Z"
+    },
+    {
+      "id": "prod_05",
+      "name": "24/7 Premium Technical Support & Maintenance",
+      "sku": "ORV-SRV-SLA",
+      "type": "service",
+      "description": "Dedicated account engineer, 15-minute response SLA, and monthly performance audits.",
+      "price": 3600,
+      "taxRate": 8.5,
+      "discount": 0,
+      "active": true,
+      "category": "Support Contracts",
+      "createdAt": "2026-02-05T00:00:00.000Z"
+    }
+  ],
+  "invoices": [
+    {
+      "customerId": "cust_04",
+      "customerName": "Acme Digital Solutions",
+      "customerEmail": "claire@acmedigital.io",
+      "customerAddress": "500 Howard St, San Francisco, CA 94105",
+      "issueDate": "2026-09-23",
+      "dueDate": "2026-10-07",
+      "items": [
+        {
+          "id": "item_custom_01",
+          "description": "Enterprise CRM Setup & Licensing",
+          "quantity": 1,
+          "unitPrice": 5000,
+          "discount": 0,
+          "taxRate": 8.5,
+          "total": 5425
+        }
+      ],
+      "subtotal": 5000,
+      "discountTotal": 0,
+      "taxTotal": 425,
+      "total": 5425,
+      "amountPaid": 0,
+      "balanceDue": 5425,
+      "status": "sent",
+      "notes": "Net 14 payment terms.",
+      "id": "inv_1790186094921_350",
+      "invoiceNumber": "INV-2026-005",
+      "createdAt": "2026-09-23T17:54:54.921Z"
+    },
+    {
+      "id": "inv_01",
+      "invoiceNumber": "INV-2026-001",
+      "customerId": "cust_01",
+      "customerName": "Nova Realty Group",
+      "customerEmail": "j.henderson@novarealty.com",
+      "customerAddress": "745 5th Ave, Floor 18, New York, NY 10151",
+      "issueDate": "2026-02-15",
+      "dueDate": "2026-03-15",
+      "items": [
+        {
+          "id": "item_01",
+          "productId": "prod_01",
+          "description": "Enterprise CRM Annual License (120 Seats)",
+          "quantity": 1,
+          "unitPrice": 18000,
+          "discount": 10,
+          "taxRate": 8.5,
+          "total": 17577
+        },
+        {
+          "id": "item_02",
+          "productId": "prod_02",
+          "description": "Custom ERP & Integration Onboarding",
+          "quantity": 1,
+          "unitPrice": 6500,
+          "discount": 0,
+          "taxRate": 8.5,
+          "total": 7052.5
+        },
+        {
+          "id": "item_03",
+          "productId": "prod_03",
+          "description": "Commercial Real Estate Property Suite",
+          "quantity": 1,
+          "unitPrice": 12500,
+          "discount": 5,
+          "taxRate": 8.5,
+          "total": 12885.62
+        }
+      ],
+      "subtotal": 37000,
+      "discountTotal": 2425,
+      "taxTotal": 2939.12,
+      "total": 37514.12,
+      "amountPaid": 37514.12,
+      "balanceDue": 0,
+      "status": "paid",
+      "notes": "Paid in full via Bank Wire transfer. Thank you for your business.",
+      "createdAt": "2026-02-15T09:00:00.000Z"
+    },
+    {
+      "id": "inv_02",
+      "invoiceNumber": "INV-2026-002",
+      "customerId": "cust_02",
+      "customerName": "MediCore Diagnostics & Clinic",
+      "customerEmail": "thorne@medicorehealth.org",
+      "customerAddress": "420 E Superior St, Chicago, IL 60611",
+      "issueDate": "2026-03-01",
+      "dueDate": "2026-03-31",
+      "items": [
+        {
+          "id": "item_04",
+          "productId": "prod_01",
+          "description": "Enterprise CRM Annual License (Multi-Clinic)",
+          "quantity": 1,
+          "unitPrice": 18000,
+          "discount": 5,
+          "taxRate": 8.5,
+          "total": 18553.5
+        },
+        {
+          "id": "item_05",
+          "productId": "prod_04",
+          "description": "Clinic & Patient Care Management Add-on",
+          "quantity": 1,
+          "unitPrice": 9500,
+          "discount": 0,
+          "taxRate": 8.5,
+          "total": 10307.5
+        }
+      ],
+      "subtotal": 27500,
+      "discountTotal": 900,
+      "taxTotal": 2261,
+      "total": 28861,
+      "amountPaid": 28861,
+      "balanceDue": 0,
+      "status": "paid",
+      "notes": "Payment settled via Automated Clearing House (ACH).",
+      "createdAt": "2026-03-01T10:00:00.000Z"
+    },
+    {
+      "id": "inv_03",
+      "invoiceNumber": "INV-2026-003",
+      "customerId": "cust_03",
+      "customerName": "Vertex Fitness & Athletic Centers",
+      "customerEmail": "vikram@vertexfit.co",
+      "customerAddress": "800 Congress Ave, Austin, TX 78701",
+      "issueDate": "2026-08-20",
+      "dueDate": "2026-09-20",
+      "items": [
+        {
+          "id": "item_06",
+          "productId": "prod_01",
+          "description": "Enterprise CRM Annual License — 8 Gym Locations",
+          "quantity": 1,
+          "unitPrice": 18000,
+          "discount": 10,
+          "taxRate": 8.5,
+          "total": 17577
+        }
+      ],
+      "subtotal": 18000,
+      "discountTotal": 1800,
+      "taxTotal": 1377,
+      "total": 17577,
+      "amountPaid": 10000,
+      "balanceDue": 7577,
+      "status": "partially_paid",
+      "notes": "Initial $10,000 installment cleared. Remaining $7,577 due upon final staff training.",
+      "createdAt": "2026-08-20T11:00:00.000Z"
+    },
+    {
+      "id": "inv_04",
+      "invoiceNumber": "INV-2026-004",
+      "customerId": "cust_04",
+      "customerName": "Acme Digital Solutions",
+      "customerEmail": "claire@acmedigital.io",
+      "customerAddress": "500 Howard St, San Francisco, CA 94105",
+      "issueDate": "2026-08-10",
+      "dueDate": "2026-09-10",
+      "items": [
+        {
+          "id": "item_07",
+          "productId": "prod_02",
+          "description": "White-Label Agency Client Pipeline Setup & Custom Modules",
+          "quantity": 2,
+          "unitPrice": 6500,
+          "discount": 0,
+          "taxRate": 8.5,
+          "total": 14105
+        }
+      ],
+      "subtotal": 13000,
+      "discountTotal": 0,
+      "taxTotal": 1105,
+      "total": 14105,
+      "amountPaid": 0,
+      "balanceDue": 14105,
+      "status": "overdue",
+      "notes": "Reminder notice issued. Accounts payable pending executive signature.",
+      "createdAt": "2026-08-10T14:00:00.000Z"
+    }
+  ],
+  "payments": [
+    {
+      "customerId": "cust_04",
+      "customerName": "Acme Digital Solutions",
+      "invoiceId": "direct_payment",
+      "invoiceNumber": "DIRECT-PAY",
+      "amount": 5000,
+      "paymentDate": "2026-09-23",
+      "method": "bank_transfer",
+      "reference": "WIRE-",
+      "notes": "",
+      "id": "pay_1790185974263_393",
+      "createdAt": "2026-09-23T17:52:54.263Z"
+    },
+    {
+      "id": "pay_01",
+      "customerId": "cust_01",
+      "customerName": "Nova Realty Group",
+      "invoiceId": "inv_01",
+      "invoiceNumber": "INV-2026-001",
+      "amount": 37514.12,
+      "paymentDate": "2026-02-20",
+      "method": "bank_transfer",
+      "reference": "WIRE-US-98213824",
+      "notes": "Wire transfer confirmed by Chase Treasury.",
+      "createdAt": "2026-02-20T16:00:00.000Z"
+    },
+    {
+      "id": "pay_02",
+      "customerId": "cust_02",
+      "customerName": "MediCore Diagnostics & Clinic",
+      "invoiceId": "inv_02",
+      "invoiceNumber": "INV-2026-002",
+      "amount": 28861,
+      "paymentDate": "2026-03-05",
+      "method": "bank_transfer",
+      "reference": "ACH-MED-774128",
+      "notes": "ACH Direct Deposit settled.",
+      "createdAt": "2026-03-05T14:30:00.000Z"
+    },
+    {
+      "id": "pay_03",
+      "customerId": "cust_03",
+      "customerName": "Vertex Fitness & Athletic Centers",
+      "invoiceId": "inv_03",
+      "invoiceNumber": "INV-2026-003",
+      "amount": 10000,
+      "paymentDate": "2026-08-25",
+      "method": "card",
+      "reference": "STRIPE-CH-9923841",
+      "notes": "Credit Card payment processed via Stripe Corporate gateway.",
+      "createdAt": "2026-08-25T12:00:00.000Z"
+    }
+  ],
+  "activities": [
+    {
+      "entityType": "invoice",
+      "entityId": "inv_1790186094921_350",
+      "type": "invoice",
+      "title": "Invoice INV-2026-005 created",
+      "description": "Billed to Acme Digital Solutions for a total of $5,425.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790186094921_460",
+      "createdAt": "2026-09-23T17:54:54.921Z"
+    },
+    {
+      "entityType": "invoice",
+      "entityId": "direct_payment",
+      "type": "payment",
+      "title": "Payment of $5,000 received",
+      "description": "Payment recorded via BANK_TRANSFER. Ref: WIRE-.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790185974268_686",
+      "createdAt": "2026-09-23T17:52:54.268Z"
+    },
+    {
+      "entityType": "task",
+      "entityId": "task_01",
+      "type": "task_completion",
+      "title": "Task completed: Review custom billing terms with Michael Torres",
+      "description": "Marked completed by Marcus Vance.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790185881198_683",
+      "createdAt": "2026-09-23T17:51:21.198Z"
+    },
+    {
+      "entityType": "deal",
+      "entityId": "deal_1790184776162_368",
+      "type": "deal_update",
+      "title": "Deal created from Lead conversion",
+      "description": "Created deal \"Sharma Apex Holdings — Commercial Contract\" valued at $35,000.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790184776171_99",
+      "createdAt": "2026-09-23T17:32:56.171Z"
+    },
+    {
+      "entityType": "customer",
+      "entityId": "cust_1790184776160_741",
+      "type": "status_change",
+      "title": "Customer created from Lead conversion",
+      "description": "Lead Rahul Sharma (Sharma Apex Holdings) successfully converted to active Customer account.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790184776162_281",
+      "createdAt": "2026-09-23T17:32:56.162Z"
+    },
+    {
+      "entityType": "lead",
+      "entityId": "lead_01",
+      "type": "status_change",
+      "title": "Lead status changed to WON",
+      "description": "Status changed from proposal to won. Score recalculated to 100/100.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790184776161_647",
+      "createdAt": "2026-09-23T17:32:56.161Z"
+    },
+    {
+      "entityType": "general",
+      "entityId": "bulk_op",
+      "type": "assignment",
+      "title": "Bulk reassigned 6 leads",
+      "description": "Assigned 6 leads to Marcus Vance.",
+      "performedBy": "usr_super_admin",
+      "performedByName": "Marcus Vance",
+      "id": "act_1790182948360_452",
+      "createdAt": "2026-09-23T17:02:28.360Z"
+    },
+    {
+      "id": "act_01",
+      "entityType": "lead",
+      "entityId": "lead_01",
+      "type": "call",
+      "title": "Discovery call with Rahul Sharma",
+      "description": "Discussed 40-seat deployment, custom automotive dealer pipeline, and WhatsApp notifications.",
+      "performedBy": "usr_sales_exec",
+      "performedByName": "Sarah Jenkins",
+      "createdAt": "2026-09-18T15:00:00.000Z"
+    },
+    {
+      "id": "act_02",
+      "entityType": "deal",
+      "entityId": "deal_03",
+      "type": "deal_update",
+      "title": "Deal stage updated to Negotiation",
+      "description": "Probability upgraded to 85% following executive pricing review.",
+      "performedBy": "usr_sales_exec",
+      "performedByName": "Sarah Jenkins",
+      "createdAt": "2026-09-18T14:10:00.000Z"
+    },
+    {
+      "id": "act_03",
+      "entityType": "invoice",
+      "entityId": "inv_03",
+      "type": "payment",
+      "title": "Payment of $10,000.00 recorded",
+      "description": "Invoice INV-2026-003 status moved to Partially Paid. Balance due: $7,577.00.",
+      "performedBy": "usr_accountant",
+      "performedByName": "Michael Torres",
+      "createdAt": "2026-08-25T12:00:00.000Z"
+    },
+    {
+      "id": "act_04",
+      "entityType": "customer",
+      "entityId": "cust_01",
+      "type": "meeting",
+      "title": "Quarterly review completed with Julian Henderson",
+      "description": "Customer reported 38% increase in broker response velocity after deploying Orvexa CRM.",
+      "performedBy": "usr_sales_exec",
+      "performedByName": "Sarah Jenkins",
+      "createdAt": "2026-09-10T16:30:00.000Z"
+    },
+    {
+      "id": "act_05",
+      "entityType": "lead",
+      "entityId": "lead_02",
+      "type": "status_change",
+      "title": "Lead status changed to Negotiation",
+      "description": "Lead score reached 88/100 following proposal feedback.",
+      "performedBy": "usr_manager",
+      "performedByName": "David Chen",
+      "createdAt": "2026-09-21T16:20:00.000Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc_01",
+      "name": "Nova Realty — Enterprise Master Services Agreement",
+      "fileName": "Nova_Realty_MSA_Executed_2026.pdf",
+      "fileSize": "2.4 MB",
+      "fileType": "application/pdf",
+      "category": "contract",
+      "relatedType": "customer",
+      "relatedId": "cust_01",
+      "relatedName": "Nova Realty Group",
+      "url": "#",
+      "uploadedBy": "Elena Rostova",
+      "createdAt": "2026-02-18T14:00:00.000Z"
+    },
+    {
+      "id": "doc_02",
+      "name": "MediCore Clinic — HIPAA Business Associate Agreement",
+      "fileName": "MediCore_BAA_Compliance_Signed.pdf",
+      "fileSize": "1.8 MB",
+      "fileType": "application/pdf",
+      "category": "contract",
+      "relatedType": "customer",
+      "relatedId": "cust_02",
+      "relatedName": "MediCore Diagnostics & Clinic",
+      "url": "#",
+      "uploadedBy": "Elena Rostova",
+      "createdAt": "2026-03-02T10:00:00.000Z"
+    },
+    {
+      "id": "doc_03",
+      "name": "Sharma Apex — Technical Specification & Proposal",
+      "fileName": "Sharma_Apex_Automotive_Proposal_v3.pdf",
+      "fileSize": "4.1 MB",
+      "fileType": "application/pdf",
+      "category": "proposal",
+      "relatedType": "lead",
+      "relatedId": "lead_01",
+      "relatedName": "Rahul Sharma",
+      "url": "#",
+      "uploadedBy": "Sarah Jenkins",
+      "createdAt": "2026-09-17T11:00:00.000Z"
+    }
+  ],
+  "communications": [
+    {
+      "id": "comm_01",
+      "type": "call",
+      "direction": "outbound",
+      "recipientName": "Rahul Sharma",
+      "recipientContact": "+91 98201 44521",
+      "relatedType": "lead",
+      "relatedId": "lead_01",
+      "subject": "Architecture review & commercial package overview",
+      "content": "Detailed walk-through of custom dealer lead distribution algorithms. Client was impressed with real-time audit logs.",
+      "durationMinutes": 28,
+      "status": "completed",
+      "loggedBy": "usr_sales_exec",
+      "loggedByName": "Sarah Jenkins",
+      "createdAt": "2026-09-18T15:30:00.000Z"
+    },
+    {
+      "id": "comm_02",
+      "type": "whatsapp",
+      "direction": "outbound",
+      "recipientName": "Ananya Deshmukh",
+      "recipientContact": "+91 99870 12345",
+      "relatedType": "lead",
+      "relatedId": "lead_02",
+      "subject": "Revised multi-clinic pricing schedule",
+      "content": "Shared PDF link and confirmed the board presentation date for Tuesday 2:30 PM.",
+      "status": "completed",
+      "loggedBy": "usr_manager",
+      "loggedByName": "David Chen",
+      "createdAt": "2026-09-21T11:15:00.000Z"
+    },
+    {
+      "id": "comm_03",
+      "type": "email",
+      "direction": "outbound",
+      "recipientName": "Claire Dupont",
+      "recipientContact": "claire@acmedigital.io",
+      "relatedType": "customer",
+      "relatedId": "cust_04",
+      "subject": "Reminder: Outstanding Invoice INV-2026-004",
+      "content": "Friendly reminder that invoice INV-2026-004 was due on Sept 10th. Attached copy and wire instructions.",
+      "status": "completed",
+      "loggedBy": "usr_accountant",
+      "loggedByName": "Michael Torres",
+      "createdAt": "2026-09-21T13:00:00.000Z"
+    }
+  ],
+  "notifications": [
+    {
+      "title": "Payment Received",
+      "message": "Received $5,000 for Invoice DIRECT-PAY from Acme Digital Solutions.",
+      "type": "payment_received",
+      "read": false,
+      "link": "/payments",
+      "id": "notif_1790185974269_620",
+      "createdAt": "2026-09-23T17:52:54.269Z"
+    },
+    {
+      "id": "notif_01",
+      "title": "High-Value Lead Assigned",
+      "message": "Rahul Sharma (Expected Value: $35,000) was assigned to you.",
+      "type": "lead_assigned",
+      "read": false,
+      "link": "/leads",
+      "createdAt": "2026-09-20T09:30:00.000Z"
+    },
+    {
+      "id": "notif_02",
+      "title": "Follow-up Due Today",
+      "message": "Call with Ananya Deshmukh scheduled for 14:30 today.",
+      "type": "followup_due",
+      "read": false,
+      "link": "/follow-ups",
+      "createdAt": "2026-09-23T08:00:00.000Z"
+    },
+    {
+      "id": "notif_03",
+      "title": "Payment Received",
+      "message": "Received $10,000.00 from Vertex Fitness & Athletic Centers (INV-2026-003).",
+      "type": "payment_received",
+      "read": true,
+      "link": "/payments",
+      "createdAt": "2026-08-25T12:05:00.000Z"
+    },
+    {
+      "id": "notif_04",
+      "title": "Invoice Overdue Alert",
+      "message": "Invoice INV-2026-004 for Acme Digital Solutions is past due by 13 days.",
+      "type": "invoice_overdue",
+      "read": false,
+      "link": "/invoices",
+      "createdAt": "2026-09-21T09:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "company": {
+      "id": "comp_01",
+      "name": "ORVEXA Enterprise Suite",
+      "logo": "",
+      "address": "100 Montgomery Street, Suite 2400, San Francisco, CA 94104",
+      "phone": "+1 (415) 890-2300",
+      "email": "operations@orvexa.io",
+      "taxId": "US-EIN-94-3829104",
+      "currency": "USD",
+      "currencySymbol": "$",
+      "timezone": "America/Los_Angeles",
+      "industry": "digital_agency"
+    },
+    "leadSources": [
+      "Google Inbound",
+      "Referral",
+      "LinkedIn Campaign",
+      "Product Hunt",
+      "Direct Inbound",
+      "Webinar",
+      "Trade Show",
+      "Cold Outreach"
+    ],
+    "leadTags": [
+      "High Value",
+      "Enterprise",
+      "Ready to Close",
+      "Referral",
+      "Salesforce Replacement",
+      "Multi-Location",
+      "Compliance",
+      "High Priority"
+    ],
+    "pipelineStages": [
+      {
+        "id": "new",
+        "label": "New Lead",
+        "probability": 10
+      },
+      {
+        "id": "qualified",
+        "label": "Qualified",
+        "probability": 35
+      },
+      {
+        "id": "proposal",
+        "label": "Proposal Sent",
+        "probability": 60
+      },
+      {
+        "id": "negotiation",
+        "label": "Negotiation",
+        "probability": 80
+      },
+      {
+        "id": "won",
+        "label": "Closed Won",
+        "probability": 100
+      },
+      {
+        "id": "lost",
+        "label": "Closed Lost",
+        "probability": 0
+      }
+    ],
+    "industries": [
+      {
+        "id": "digital_agency",
+        "name": "Digital Agencies & Tech",
+        "description": "Pipelines, retainer contracts, and partner programs"
+      },
+      {
+        "id": "real_estate",
+        "name": "Real Estate & Brokerages",
+        "description": "Property staging leads, broker tracking, and lease cycles"
+      },
+      {
+        "id": "clinics",
+        "name": "Clinics & Healthcare",
+        "description": "Patient intake, appointment booking, and HIPAA notes"
+      },
+      {
+        "id": "gyms",
+        "name": "Gyms & Athletic Centers",
+        "description": "Franchise membership pipelines and trainer schedules"
+      },
+      {
+        "id": "coaching",
+        "name": "Coaching & Education",
+        "description": "Student certifications and executive training cohorts"
+      },
+      {
+        "id": "automotive",
+        "name": "Automotive & Dealerships",
+        "description": "Showroom test-drives, fleet sales, and finance"
+      },
+      {
+        "id": "professional_services",
+        "name": "Professional Services & Legal",
+        "description": "Retainers, billable projects, and compliance"
+      },
+      {
+        "id": "general",
+        "name": "General B2B Commercial",
+        "description": "Standard high-performance enterprise sales core"
+      }
+    ]
+  },
+  "credentials": [
+    {
+      "userId": "usr_super_admin",
+      "email": "marcus.vance@orvexa.io",
+      "passwordHash": "64cd953281acdbf00ba72b8ab9a51462ca1fdb7f7484b41a91de7230cb5dbfaa4075999f98802b32bed700480fc6e2af79ab7c0ac65887e505eb627137953c56",
+      "salt": "8a481ca9fd2ea84874e7a6a3c90289ca"
+    },
+    {
+      "userId": "usr_admin",
+      "email": "elena.rostova@orvexa.io",
+      "passwordHash": "bdf1ae1013f22bda4e378bfa37a8bdc6cb8554c09a67cf88e5d9111c130fddbe046df6c53e949cbf441753abee7629055165e2fe36ab3579b31d6686ab2a76a9",
+      "salt": "a9dd89e1919dd883f05f29370bea2461"
+    },
+    {
+      "userId": "usr_manager",
+      "email": "david.chen@orvexa.io",
+      "passwordHash": "27b0579e5b924449d95dc36642c11348d6b7195cf25f519950484fbeb3ad7c3d713da486f4c3894530969a93e623b1367adfb60d2b9df18a8dd41c35354f4e59",
+      "salt": "346dbb7af1853ec6bef64a375b8c54c9"
+    },
+    {
+      "userId": "usr_sales_exec",
+      "email": "sarah.jenkins@orvexa.io",
+      "passwordHash": "c51c869526ac34ddd2792100839bcea12971b4613db91c0d841037df56432b3679913e90e1c16bfbe80c52ac2b83e77fc4d6b9d8df01c0453bd36fc4dcf59be7",
+      "salt": "27fad390dc6da8202f63cd6595c561d5"
+    },
+    {
+      "userId": "usr_support",
+      "email": "alex.rivera@orvexa.io",
+      "passwordHash": "c2ad20782771bd8388a0fc03a9c94bc750aa005ea92e86f3d15c8b3d263e8bae72cee6801bfca825875e7f40fe7229c6e550b649d674bfa33c0aa59cd5d2cc6e",
+      "salt": "5a8dc3a5a2ec84ce0ebf221265f4fb3d"
+    },
+    {
+      "userId": "usr_accountant",
+      "email": "michael.torres@orvexa.io",
+      "passwordHash": "8c47919bc0d4a8828fdda38e08bc2a6d6bef01f54b49ffb885cd813f613669f8fa35d9ef554e9a9af7c970f1f42bdc51ee13378033da42001817f72c27d60340",
+      "salt": "2e537e271ee6384021d94074c8025b0d"
+    },
+    {
+      "userId": "usr_1790187818527_561",
+      "email": "zubair669262@gmail.com",
+      "passwordHash": "2c22c66bb4902c7b3ca1d330cdcfdcd7943dc9b8980c8b3bb0fde1da833b44d430cae9ed59e3c722f592e8096d939348f3b7828990c508eee9d82710e435ca5b",
+      "salt": "d2d5cf3da5c58480f7113f55e3d77764",
+      "resetToken": "5e229fa9bc585e0bded3955150bd13c39051d9e356e529b1",
+      "resetTokenExpires": "2026-09-23T19:24:15.836Z"
+    }
+  ],
+  "sessions": [
+    {
+      "token": "035ea013bde4c0199036f3cbf36a7eee5dc5abbfe6138ef296cab73eadaccd9e",
+      "userId": "usr_super_admin",
+      "createdAt": "2026-09-23T18:29:34.966Z",
+      "expiresAt": "2026-09-24T18:29:34.966Z",
+      "rememberMe": false
+    },
+    {
+      "token": "9c5aeb4d42547ea2923f470d37464da2a5944a62f1fad2e4f437e207a8f17b98",
+      "userId": "usr_1790187818527_561",
+      "createdAt": "2026-09-23T18:29:37.463Z",
+      "expiresAt": "2026-09-24T18:29:37.463Z",
+      "rememberMe": false
+    },
+    {
+      "token": "2e9b17353bc0a40e51a24c8287280f32e918234de949093d5e14d71f7f2643fc",
+      "userId": "usr_1790187818527_561",
+      "createdAt": "2026-09-23T18:30:24.819Z",
+      "expiresAt": "2026-10-23T18:30:24.819Z",
+      "rememberMe": true
+    },
+    {
+      "token": "862b582db000f8c0c76fdc613d99234f8068b17d583381ffef3ea5f6ea9a0ae3",
+      "userId": "usr_1790187818527_561",
+      "createdAt": "2026-09-23T18:32:20.987Z",
+      "expiresAt": "2026-09-24T18:32:20.987Z",
+      "rememberMe": false
+    },
+    {
+      "token": "5a523cc4cbd07578d8ed27dfc4d7dfc190402305235fd7e927d94b905589eb7c",
+      "userId": "usr_super_admin",
+      "createdAt": "2026-09-23T18:32:23.098Z",
+      "expiresAt": "2026-09-24T18:32:23.098Z",
+      "rememberMe": false
+    }
+  ]
+}
