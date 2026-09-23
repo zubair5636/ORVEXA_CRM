@@ -1,0 +1,6 @@
+{
+  "name": "ORVEXA CRM",
+  "description": "Production-grade enterprise SaaS CRM platform for multi-industry sales, customer relationships, pipeline automation, invoices, and operations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
