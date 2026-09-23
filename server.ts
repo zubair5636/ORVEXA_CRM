@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { apiRouter } from './server/routes';
+import { app } from './server/app';
 
 dotenv.config();
 
@@ -10,19 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  app.use(express.json());
-
-  // Mount API endpoints under /api
-  app.use('/api', apiRouter);
-
-  // Health check endpoint
-  app.get('/health', (req, res) => {
-    res.json({ status: 'ok', name: 'ORVEXA CRM', timestamp: new Date().toISOString() });
-  });
-
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!isProduction) {
@@ -35,7 +23,7 @@ async function startServer() {
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
     });
   }

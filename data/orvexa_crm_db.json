@@ -1414,13 +1414,6 @@
       "rememberMe": false
     },
     {
-      "token": "2e9b17353bc0a40e51a24c8287280f32e918234de949093d5e14d71f7f2643fc",
-      "userId": "usr_1790187818527_561",
-      "createdAt": "2026-09-23T18:30:24.819Z",
-      "expiresAt": "2026-10-23T18:30:24.819Z",
-      "rememberMe": true
-    },
-    {
       "token": "862b582db000f8c0c76fdc613d99234f8068b17d583381ffef3ea5f6ea9a0ae3",
       "userId": "usr_1790187818527_561",
       "createdAt": "2026-09-23T18:32:20.987Z",
@@ -1432,6 +1425,20 @@
       "userId": "usr_super_admin",
       "createdAt": "2026-09-23T18:32:23.098Z",
       "expiresAt": "2026-09-24T18:32:23.098Z",
+      "rememberMe": false
+    },
+    {
+      "token": "6ce81af436071062bafb2e86daa1723e7d25a0bf42f90921473ed3a1d65f37c0",
+      "userId": "usr_1790187818527_561",
+      "createdAt": "2026-09-23T18:37:35.849Z",
+      "expiresAt": "2026-10-23T18:37:35.849Z",
+      "rememberMe": true
+    },
+    {
+      "token": "4bce04161b3e294e56993ce3d3f41f20a9fd26498a50814a932bff193392c82b",
+      "userId": "usr_1790187818527_561",
+      "createdAt": "2026-09-23T18:41:31.629Z",
+      "expiresAt": "2026-09-24T18:41:31.629Z",
       "rememberMe": false
     }
   ]

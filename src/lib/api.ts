@@ -88,11 +88,20 @@ class ApiClient {
     }
 
     if (!res.ok) {
-      let errorMsg = `API Error ${res.status}: ${res.statusText}`;
+      if (res.status === 404) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(`[API 404] Endpoint not found: /api${endpoint}`);
+        }
+        throw new Error('Unable to connect to the authentication service. Please check your network or deployment configuration.');
+      }
+
+      let errorMsg = `Unable to complete request (${res.status}).`;
       try {
         const errJson = await res.json();
         if (errJson.error) errorMsg = errJson.error;
-      } catch (_) {}
+      } catch (_) {
+        if (res.statusText) errorMsg = `Request failed: ${res.statusText}`;
+      }
       throw new Error(errorMsg);
     }
 
