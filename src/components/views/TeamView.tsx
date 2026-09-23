@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const TeamView: React.FC = () => {
-  const { allUsers, currentUser, switchRole, showToast, triggerRefresh, refreshKey } = useCrm();
+  const { allUsers, currentUser, showToast, triggerRefresh, refreshKey } = useCrm();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,7 +123,7 @@ export const TeamView: React.FC = () => {
                 <th className="py-3.5 px-3">Department</th>
                 <th className="py-3.5 px-3">Title</th>
                 <th className="py-3.5 px-3">Status</th>
-                <th className="py-3.5 px-4 text-right">Switch Active Session</th>
+                <th className="py-3.5 px-4 text-right">Account Session</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/80">
@@ -174,15 +174,14 @@ export const TeamView: React.FC = () => {
 
                     <td className="py-3.5 px-4 text-right">
                       {isCurrent ? (
-                        <span className="text-xs text-neutral-400 font-mono italic">Current User</span>
+                        <span className="px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 rounded-lg inline-flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Active Session</span>
+                        </span>
                       ) : (
-                        <button
-                          onClick={() => switchRole(u.id)}
-                          className="px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors inline-flex items-center gap-1"
-                        >
-                          <span>Switch to {u.name.split(' ')[0]}</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
+                        <span className="text-xs text-neutral-400 font-mono">
+                          Password Protected
+                        </span>
                       )}
                     </td>
                   </tr>

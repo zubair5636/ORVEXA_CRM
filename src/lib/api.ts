@@ -1,5 +1,6 @@
 import {
   User,
+  Role,
   Lead,
   Customer,
   Deal,
@@ -21,14 +22,70 @@ import {
 } from '../types/crm';
 
 class ApiClient {
+  private token: string | null = null;
+  private onUnauthorizedCallback?: () => void;
+
+  constructor() {
+    this.token = this.loadInitialToken();
+  }
+
+  private loadInitialToken(): string | null {
+    try {
+      return localStorage.getItem('orvexa_auth_token') || sessionStorage.getItem('orvexa_auth_token') || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  public setToken(token: string | null, rememberMe = true) {
+    this.token = token;
+    try {
+      if (token) {
+        if (rememberMe) {
+          localStorage.setItem('orvexa_auth_token', token);
+          sessionStorage.removeItem('orvexa_auth_token');
+        } else {
+          sessionStorage.setItem('orvexa_auth_token', token);
+          localStorage.removeItem('orvexa_auth_token');
+        }
+      } else {
+        localStorage.removeItem('orvexa_auth_token');
+        sessionStorage.removeItem('orvexa_auth_token');
+      }
+    } catch (_) {}
+  }
+
+  public getToken(): string | null {
+    return this.token;
+  }
+
+  public onUnauthorized(callback: () => void) {
+    this.onUnauthorizedCallback = callback;
+  }
+
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((options?.headers as Record<string, string>) || {}),
+    };
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
     const res = await fetch(`/api${endpoint}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options?.headers || {}),
-      },
+      headers,
     });
+
+    if (res.status === 401) {
+      if (!endpoint.startsWith('/auth/login') && !endpoint.startsWith('/auth/forgot-password') && !endpoint.startsWith('/auth/reset-password')) {
+        this.setToken(null);
+        if (this.onUnauthorizedCallback) {
+          this.onUnauthorizedCallback();
+        }
+      }
+    }
 
     if (!res.ok) {
       let errorMsg = `API Error ${res.status}: ${res.statusText}`;
@@ -42,15 +99,51 @@ class ApiClient {
     return res.json();
   }
 
-  // Auth
-  async getCurrentUser(): Promise<{ user: User; allUsers: User[] }> {
+  // --- Real Authentication ---
+  async login(credentials: { email: string; password: string; rememberMe?: boolean }): Promise<{ success: boolean; token: string; user: User; expiresAt: string }> {
+    const res = await this.request<{ success: boolean; token: string; user: User; expiresAt: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    if (res.success && res.token) {
+      this.setToken(res.token, !!credentials.rememberMe);
+    }
+    return res;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.request('/auth/logout', { method: 'POST' });
+    } catch (_) {}
+    this.setToken(null);
+  }
+
+  async getCurrentUser(): Promise<{ user: User; company: any; allUsers: User[] }> {
     return this.request('/auth/me');
   }
 
-  async switchRole(userId: string): Promise<{ success: boolean; user: User }> {
-    return this.request('/auth/switch-role', {
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string; resetToken?: string }> {
+    return this.request('/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
+  }
+
+  async getDemoAccounts(): Promise<Array<{ id: string; name: string; email: string; role: Role; title: string; department: string }>> {
+    return this.request('/auth/demo-accounts');
+  }
+
+  async updateProfile(profile: { name?: string; phone?: string; title?: string; avatar?: string }): Promise<{ success: boolean; user: User }> {
+    return this.request('/auth/profile', {
+      method: 'POST',
+      body: JSON.stringify(profile),
     });
   }
 

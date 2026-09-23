@@ -21,6 +21,7 @@ import {
   DealStage,
   LeadStatus
 } from '../src/types/crm';
+import { UserCredential, SessionRecord, hashPassword, generateSessionToken } from './auth';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DATA_DIR, 'orvexa_crm_db.json');
@@ -28,6 +29,8 @@ const DB_FILE = path.resolve(DATA_DIR, 'orvexa_crm_db.json');
 export interface DatabaseSchema {
   company: Company;
   users: User[];
+  credentials: UserCredential[];
+  sessions: SessionRecord[];
   leads: Lead[];
   customers: Customer[];
   deals: Deal[];
@@ -1115,9 +1118,23 @@ const getInitialSeedData = (): DatabaseSchema => {
     ],
   };
 
+  const defaultPassword = 'Orvexa2026!';
+  const credentials: UserCredential[] = users.map((u) => {
+    const { hash, salt } = hashPassword(defaultPassword);
+    return {
+      userId: u.id,
+      email: u.email.toLowerCase(),
+      passwordHash: hash,
+      salt,
+    };
+  });
+  const sessions: SessionRecord[] = [];
+
   return {
     company,
     users,
+    credentials,
+    sessions,
     leads,
     customers,
     deals,
@@ -1151,6 +1168,21 @@ class DatabaseStore {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
+        if (!parsed.credentials || parsed.credentials.length === 0) {
+          const defaultPassword = 'Orvexa2026!';
+          parsed.credentials = (parsed.users || []).map((u: User) => {
+            const { hash, salt } = hashPassword(defaultPassword);
+            return {
+              userId: u.id,
+              email: u.email.toLowerCase(),
+              passwordHash: hash,
+              salt,
+            };
+          });
+        }
+        if (!parsed.sessions) {
+          parsed.sessions = [];
+        }
         return parsed;
       }
     } catch (err) {
@@ -1213,6 +1245,11 @@ class DatabaseStore {
     return Math.min(100, Math.max(5, score));
   }
 
+  // --- Company & Workspace ---
+  public getCompany(): Company {
+    return this.data.company;
+  }
+
   // --- Users & Auth ---
   public getUsers(): User[] {
     return this.data.users;
@@ -1220,6 +1257,142 @@ class DatabaseStore {
 
   public getUserById(id: string): User | undefined {
     return this.data.users.find((u) => u.id === id);
+  }
+
+  public getUserByEmail(email: string): User | undefined {
+    const normalized = email.trim().toLowerCase();
+    return this.data.users.find((u) => u.email.trim().toLowerCase() === normalized);
+  }
+
+  public getCredentialByEmail(email: string): UserCredential | undefined {
+    const normalized = email.trim().toLowerCase();
+    return this.data.credentials.find((c) => c.email.trim().toLowerCase() === normalized);
+  }
+
+  public getCredentialByUserId(userId: string): UserCredential | undefined {
+    return this.data.credentials.find((c) => c.userId === userId);
+  }
+
+  public createSession(userId: string, rememberMe = true): SessionRecord {
+    // 30 days if rememberMe, 24 hours otherwise
+    const durationMs = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + durationMs).toISOString();
+    const token = generateSessionToken();
+
+    const session: SessionRecord = {
+      token,
+      userId,
+      createdAt: now.toISOString(),
+      expiresAt,
+      rememberMe,
+    };
+
+    const nowIso = now.toISOString();
+    this.data.sessions = (this.data.sessions || []).filter((s) => s.expiresAt > nowIso);
+    this.data.sessions.push(session);
+    this.saveToDisk();
+    return session;
+  }
+
+  public getSession(token: string): SessionRecord | undefined {
+    if (!this.data.sessions) this.data.sessions = [];
+    const nowIso = new Date().toISOString();
+    const session = this.data.sessions.find((s) => s.token === token);
+    if (!session) return undefined;
+    if (session.expiresAt <= nowIso) {
+      this.deleteSession(token);
+      return undefined;
+    }
+    return session;
+  }
+
+  public deleteSession(token: string): boolean {
+    if (!this.data.sessions) this.data.sessions = [];
+    const prevLen = this.data.sessions.length;
+    this.data.sessions = this.data.sessions.filter((s) => s.token !== token);
+    if (this.data.sessions.length !== prevLen) {
+      this.saveToDisk();
+      return true;
+    }
+    return false;
+  }
+
+  public setResetToken(email: string, token: string, expiresMinutes = 60): boolean {
+    const cred = this.getCredentialByEmail(email);
+    if (!cred) return false;
+    cred.resetToken = token;
+    cred.resetTokenExpires = new Date(Date.now() + expiresMinutes * 60 * 1000).toISOString();
+    this.saveToDisk();
+    return true;
+  }
+
+  public resetPasswordWithToken(token: string, newPasswordHash: string, newSalt: string): { success: boolean; user?: User; error?: string } {
+    const nowIso = new Date().toISOString();
+    const cred = (this.data.credentials || []).find(
+      (c) => c.resetToken === token && c.resetTokenExpires && c.resetTokenExpires > nowIso
+    );
+    if (!cred) {
+      return { success: false, error: 'Password reset link is invalid or has expired.' };
+    }
+
+    cred.passwordHash = newPasswordHash;
+    cred.salt = newSalt;
+    cred.resetToken = undefined;
+    cred.resetTokenExpires = undefined;
+
+    // Invalidate all existing sessions for this user on password reset
+    if (this.data.sessions) {
+      this.data.sessions = this.data.sessions.filter((s) => s.userId !== cred.userId);
+    }
+
+    const user = this.getUserById(cred.userId);
+    this.saveToDisk();
+    return { success: true, user };
+  }
+
+  public updateUserPassword(userId: string, newPasswordHash: string, newSalt: string): boolean {
+    const cred = this.getCredentialByUserId(userId);
+    if (!cred) return false;
+    cred.passwordHash = newPasswordHash;
+    cred.salt = newSalt;
+    this.saveToDisk();
+    return true;
+  }
+
+  public updateUserProfile(userId: string, updates: Partial<User>): User | undefined {
+    const user = this.getUserById(userId);
+    if (!user) return undefined;
+    Object.assign(user, updates);
+    this.saveToDisk();
+    return user;
+  }
+
+  public createUserWithCredentials(
+    userData: Omit<User, 'id' | 'createdAt'>,
+    password = 'Orvexa2026!'
+  ): { user: User; credential: UserCredential } {
+    const id = `usr_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const now = new Date().toISOString();
+    const newUser: User = {
+      ...userData,
+      id,
+      createdAt: now,
+    };
+    this.data.users.push(newUser);
+
+    const { hash, salt } = hashPassword(password);
+    const newCred: UserCredential = {
+      userId: id,
+      email: newUser.email.toLowerCase(),
+      passwordHash: hash,
+      salt,
+    };
+    if (!this.data.credentials) this.data.credentials = [];
+    this.data.credentials.push(newCred);
+
+    this.saveToDisk();
+    return { user: newUser, credential: newCred };
   }
 
   // --- Leads ---

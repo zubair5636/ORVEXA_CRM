@@ -20,6 +20,10 @@ import {
   Calendar,
   RotateCcw,
   Sparkles,
+  User as UserIcon,
+  Settings,
+  LogOut,
+  Shield,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -37,8 +41,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobile, collapsed }) => 
     theme,
     toggleTheme,
     currentUser,
-    allUsers,
-    switchRole,
+    logout,
+    setIsProfileModalOpen,
     triggerRefresh,
     showToast,
   } = useCrm();
@@ -326,48 +330,61 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobile, collapsed }) => 
 
             {isRoleOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in">
-                <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800 mb-1">
-                  <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+                {/* Authenticated User Summary */}
+                <div className="px-3 py-2.5 border-b border-neutral-100 dark:border-neutral-800 mb-1.5">
+                  <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
                     {currentUser?.name}
                   </div>
-                  <div className="text-[11px] text-neutral-400">
+                  <div className="text-[11px] text-neutral-400 font-mono truncate">
                     {currentUser?.email}
                   </div>
-                  <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 font-medium capitalize">
-                    Active: {currentUser?.role.replace('_', ' ')}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-500 dark:text-blue-400 font-semibold border border-blue-500/20 capitalize">
+                      <Shield className="w-3 h-3" />
+                      {currentUser?.role.replace('_', ' ')}
+                    </span>
+                    <span className="text-[10px] text-neutral-400 truncate max-w-[120px]">
+                      {currentUser?.department}
+                    </span>
                   </div>
                 </div>
 
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 px-3 py-1 mt-1">
-                  Switch Active Role (RBAC Demo)
-                </div>
-
+                {/* Actions */}
                 <div className="space-y-0.5">
-                  {allUsers.map((u) => {
-                    const isSelected = u.id === currentUser?.id;
-                    return (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          switchRole(u.id);
-                          setIsRoleOpen(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                          isSelected
-                            ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-semibold'
-                            : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/60'
-                        }`}
-                      >
-                        <div>
-                          <div className="text-xs">{u.name}</div>
-                          <div className="text-[10px] text-neutral-400 capitalize">
-                            {u.role.replace('_', ' ')} · {u.department}
-                          </div>
-                        </div>
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />}
-                      </button>
-                    );
-                  })}
+                  <button
+                    onClick={() => {
+                      setIsRoleOpen(false);
+                      setIsProfileModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-left font-medium"
+                  >
+                    <UserIcon className="w-4 h-4 text-neutral-400" />
+                    <span>User Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsRoleOpen(false);
+                      setIsProfileModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-left font-medium"
+                  >
+                    <Settings className="w-4 h-4 text-neutral-400" />
+                    <span>Account Settings</span>
+                  </button>
+
+                  <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
+
+                  <button
+                    onClick={() => {
+                      setIsRoleOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors text-left font-semibold"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
               </div>
             )}

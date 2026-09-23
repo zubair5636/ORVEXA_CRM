@@ -11,13 +11,21 @@ export interface ToastMessage {
 
 interface CrmContextType {
   currentUser: User | null;
+  isAuthenticated: boolean;
+  isLoadingSession: boolean;
   allUsers: User[];
   notifications: Notification[];
   unreadNotifCount: number;
   settings: CRMSettings | null;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
-  switchRole: (userId: string) => Promise<void>;
+  login: (credentials: { email: string; password: string; rememberMe?: boolean }) => Promise<User>;
+  logout: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message: string; resetToken?: string }>;
+  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  updateProfile: (profile: { name?: string; phone?: string; title?: string; avatar?: string }) => Promise<void>;
+  isProfileModalOpen: boolean;
+  setIsProfileModalOpen: (open: boolean) => void;
   toasts: ToastMessage[];
   showToast: (toast: Omit<ToastMessage, 'id'>) => void;
   dismissToast: (id: string) => void;
@@ -53,6 +61,10 @@ const getInitialTheme = (): 'light' | 'dark' => {
 
 export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoadingSession, setIsLoadingSession] = useState<boolean>(true);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [settings, setSettings] = useState<CRMSettings | null>(null);
@@ -113,14 +125,55 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
   }, [theme]);
 
-  // Load user & session
+  // Load user session on mount
   useEffect(() => {
+    let isMounted = true;
+
+    api.onUnauthorized(() => {
+      if (isMounted) {
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+      }
+    });
+
+    const token = api.getToken();
+    if (!token) {
+      if (isMounted) {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        setIsLoadingSession(false);
+      }
+      return;
+    }
+
     api.getCurrentUser()
       .then((data) => {
+        if (!isMounted) return;
         setCurrentUser(data.user);
-        setAllUsers(data.allUsers);
+        setAllUsers(data.allUsers || []);
+        setIsAuthenticated(true);
       })
-      .catch((err) => console.error('Failed to load user session', err));
+      .catch((err) => {
+        console.warn('[AUTH] Stored token invalid:', err);
+        if (!isMounted) return;
+        api.setToken(null);
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingSession(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync settings and notifications once authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
     api.getSettings()
       .then(setSettings)
@@ -129,22 +182,71 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     api.getNotifications()
       .then(setNotifications)
       .catch((err) => console.error('Failed to load notifications', err));
-  }, [refreshKey]);
+  }, [isAuthenticated, refreshKey]);
 
-  const switchRole = async (userId: string) => {
+  // Real Login
+  const login = async (credentials: { email: string; password: string; rememberMe?: boolean }): Promise<User> => {
+    const res = await api.login(credentials);
+    setCurrentUser(res.user);
+    setIsAuthenticated(true);
+
+    // Refresh context data
     try {
-      const res = await api.switchRole(userId);
-      if (res.success) {
-        setCurrentUser(res.user);
-        showToast({
-          type: 'info',
-          title: `Role switched to ${res.user.role.toUpperCase()}`,
-          message: `Now acting as ${res.user.name} (${res.user.title})`,
-        });
-        triggerRefresh();
-      }
-    } catch (err: any) {
-      showToast({ type: 'error', title: 'Failed to switch role', message: err.message });
+      const meData = await api.getCurrentUser();
+      setAllUsers(meData.allUsers || []);
+    } catch (_) {}
+
+    triggerRefresh();
+    showToast({
+      type: 'success',
+      title: `Welcome back, ${res.user.name}`,
+      message: `Signed in as ${res.user.role.replace('_', ' ').toUpperCase()} (${res.user.department})`,
+    });
+
+    return res.user;
+  };
+
+  // Real Logout
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch (_) {}
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    showToast({
+      type: 'info',
+      title: 'Signed Out',
+      message: 'You have been safely signed out of your workspace.',
+    });
+  };
+
+  // Forgot Password
+  const forgotPassword = async (email: string) => {
+    return api.forgotPassword(email);
+  };
+
+  // Reset Password
+  const resetPassword = async (token: string, newPassword: string) => {
+    const res = await api.resetPassword(token, newPassword);
+    showToast({
+      type: 'success',
+      title: 'Password Updated',
+      message: 'You can now sign in with your new password.',
+    });
+    return res;
+  };
+
+  // Update Profile
+  const updateProfile = async (profile: { name?: string; phone?: string; title?: string; avatar?: string }) => {
+    const res = await api.updateProfile(profile);
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
+      showToast({
+        type: 'success',
+        title: 'Profile Updated',
+        message: 'Your profile changes have been saved.',
+      });
+      triggerRefresh();
     }
   };
 
@@ -171,13 +273,21 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <CrmContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
+        isLoadingSession,
         allUsers,
         notifications,
         unreadNotifCount,
         settings,
         theme,
         toggleTheme,
-        switchRole,
+        login,
+        logout,
+        forgotPassword,
+        resetPassword,
+        updateProfile,
+        isProfileModalOpen,
+        setIsProfileModalOpen,
         toasts,
         showToast,
         dismissToast,

@@ -1,191 +1,482 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { db } from './db';
 import { processCrmAiQuery } from './ai';
+import { hashPassword, verifyPassword, generateResetToken } from './auth';
+import { Role, User } from '../src/types/crm';
 
 export const apiRouter = Router();
 
-// Current active session state for demonstration (simulating user session with role switcher)
-let currentActiveUserId = 'usr_super_admin';
+// Extend Request to include authenticated user
+export interface AuthenticatedRequest extends Request {
+  user?: User;
+  sessionToken?: string;
+}
 
-// --- Auth & Session ---
-apiRouter.get('/auth/me', (req: Request, res: Response) => {
-  const user = db.getUserById(currentActiveUserId) || db.getUsers()[0];
-  res.json({ user, allUsers: db.getUsers() });
-});
+// ============================================================================
+// AUTHENTICATION & AUTHORIZATION MIDDLEWARE
+// ============================================================================
 
-apiRouter.post('/auth/switch-role', (req: Request, res: Response) => {
-  const { userId } = req.body;
-  const target = db.getUserById(userId);
-  if (!target) {
-    return res.status(404).json({ error: 'User not found' });
+export const authenticateUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.substring(7).trim()
+    : (req.headers['x-session-token'] as string)?.trim();
+
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required. Please sign in.' });
   }
-  currentActiveUserId = userId;
-  res.json({ success: true, user: target });
+
+  const session = db.getSession(token);
+  if (!session) {
+    return res.status(401).json({ error: 'Session expired or invalid. Please sign in again.' });
+  }
+
+  const user = db.getUserById(session.userId);
+  if (!user) {
+    return res.status(401).json({ error: 'User account not found.' });
+  }
+
+  if (user.active === false) {
+    return res.status(403).json({ error: 'Account has been deactivated. Please contact an administrator.' });
+  }
+
+  req.user = user;
+  req.sessionToken = token;
+  next();
+};
+
+export const requireRoles = (...allowedRoles: Role[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+
+    // Super Admin always has full access
+    if (req.user.role === 'super_admin') {
+      return next();
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: `Access denied. Role '${req.user.role.replace('_', ' ')}' does not have permission for this resource.`,
+      });
+    }
+
+    next();
+  };
+};
+
+// ============================================================================
+// AUTHENTICATION ROUTES (PUBLIC & PROTECTED)
+// ============================================================================
+
+/**
+ * Public: Log in with email and password
+ */
+apiRouter.post('/auth/login', (req: Request, res: Response) => {
+  try {
+    const { email, password, rememberMe } = req.body;
+
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = db.getUserByEmail(trimmedEmail);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    if (user.active === false) {
+      return res.status(403).json({ error: 'This account has been disabled. Please contact your administrator.' });
+    }
+
+    const cred = db.getCredentialByEmail(trimmedEmail);
+    if (!cred) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const isValid = verifyPassword(password, cred.passwordHash, cred.salt);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const session = db.createSession(user.id, !!rememberMe);
+
+    res.json({
+      success: true,
+      token: session.token,
+      user,
+      expiresAt: session.expiresAt,
+      company: db.getCompany(),
+    });
+  } catch (err: any) {
+    console.error('[AUTH] Login failure:', err);
+    res.status(500).json({ error: 'Internal authentication service error.' });
+  }
 });
+
+/**
+ * Protected: Get current session user
+ */
+apiRouter.get('/auth/me', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  res.json({
+    success: true,
+    user: req.user,
+    company: db.getCompany(),
+    allUsers: db.getUsers(), // Directory list for team assignees
+  });
+});
+
+/**
+ * Protected: Logout and destroy session
+ */
+apiRouter.post('/auth/logout', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  if (req.sessionToken) {
+    db.deleteSession(req.sessionToken);
+  }
+  res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+/**
+ * Public: Request password reset link / token
+ */
+apiRouter.post('/auth/forgot-password', (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'A valid email address is required.' });
+  }
+
+  const trimmed = email.trim().toLowerCase();
+  const user = db.getUserByEmail(trimmed);
+
+  if (user) {
+    const token = generateResetToken();
+    db.setResetToken(trimmed, token, 60); // 60 min expiration
+    return res.json({
+      success: true,
+      message: `Password reset instructions and token issued for ${trimmed}.`,
+      resetToken: token,
+    });
+  }
+
+  // Consistent message to prevent email enumeration
+  res.json({
+    success: true,
+    message: 'If an account exists with that email, password reset instructions have been generated.',
+  });
+});
+
+/**
+ * Public: Reset password with token
+ */
+apiRouter.post('/auth/reset-password', (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'Reset token is missing or invalid.' });
+  }
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+  }
+
+  const { hash, salt } = hashPassword(newPassword);
+  const result = db.resetPasswordWithToken(token.trim(), hash, salt);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error || 'Failed to reset password.' });
+  }
+
+  res.json({
+    success: true,
+    message: 'Your password has been reset successfully. Please log in with your new password.',
+  });
+});
+
+/**
+ * Public: Provide demo accounts catalogue for instant testing
+ */
+apiRouter.get('/auth/demo-accounts', (_req: Request, res: Response) => {
+  const demoUsers = db.getUsers().map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    title: u.title,
+    department: u.department,
+  }));
+  res.json(demoUsers);
+});
+
+/**
+ * Protected: Update own user profile
+ */
+apiRouter.post('/auth/profile', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  const { name, phone, title, avatar } = req.body;
+  const updated = db.updateUserProfile(req.user!.id, {
+    ...(name ? { name } : {}),
+    ...(phone !== undefined ? { phone } : {}),
+    ...(title ? { title } : {}),
+    ...(avatar !== undefined ? { avatar } : {}),
+  });
+  res.json({ success: true, user: updated });
+});
+
+// ============================================================================
+// CRM PROTECTED ENDPOINTS
+// ============================================================================
 
 // --- Dashboard & Metrics ---
-apiRouter.get('/dashboard', (req: Request, res: Response) => {
+apiRouter.get('/dashboard', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const timeRange = (req.query.range as string) || '30d';
   const metrics = db.getDashboardMetrics(timeRange);
   res.json(metrics);
 });
 
 // --- Global Search ---
-apiRouter.get('/search', (req: Request, res: Response) => {
+apiRouter.get('/search', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const q = (req.query.q as string) || '';
   const results = db.globalSearch(q);
   res.json(results);
 });
 
 // --- Leads ---
-apiRouter.get('/leads', (req: Request, res: Response) => {
-  res.json(db.getLeads());
+apiRouter.get('/leads', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  let leads = db.getLeads();
+  // Role-based visibility: sales_executives can see assigned leads or all team leads
+  if (req.user?.role === 'sales_executive' && req.query.mine === 'true') {
+    leads = leads.filter((l) => l.assignedTo === req.user!.id);
+  }
+  res.json(leads);
 });
 
-apiRouter.get('/leads/:id', (req: Request, res: Response) => {
+apiRouter.get('/leads/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const lead = db.getLeadById(req.params.id);
   if (!lead) return res.status(404).json({ error: 'Lead not found' });
   res.json(lead);
 });
 
-apiRouter.post('/leads', (req: Request, res: Response) => {
-  try {
-    const lead = db.createLead(req.body, currentActiveUserId);
-    res.status(201).json(lead);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.post(
+  '/leads',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const lead = db.createLead(req.body, req.user!.id);
+      res.status(201).json(lead);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
-apiRouter.put('/leads/:id', (req: Request, res: Response) => {
-  const updated = db.updateLead(req.params.id, req.body, currentActiveUserId);
-  if (!updated) return res.status(404).json({ error: 'Lead not found' });
-  res.json(updated);
-});
-
-apiRouter.delete('/leads/:id', (req: Request, res: Response) => {
-  const ok = db.deleteLead(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Lead not found' });
-  res.json({ success: true });
-});
-
-apiRouter.post('/leads/:id/convert', (req: Request, res: Response) => {
-  try {
-    const result = db.convertLeadToCustomer(req.params.id, req.body, currentActiveUserId);
-    res.json({ success: true, ...result });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.put(
+  '/leads/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const updated = db.updateLead(req.params.id, req.body, req.user!.id);
+    if (!updated) return res.status(404).json({ error: 'Lead not found' });
+    res.json(updated);
   }
-});
+);
 
-apiRouter.post('/leads/bulk/assign', (req: Request, res: Response) => {
-  const { leadIds, assignedTo } = req.body;
-  const count = db.bulkAssignLeads(leadIds, assignedTo, currentActiveUserId);
-  res.json({ success: true, count });
-});
+apiRouter.delete(
+  '/leads/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const ok = db.deleteLead(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Lead not found' });
+    res.json({ success: true });
+  }
+);
 
-apiRouter.post('/leads/bulk/status', (req: Request, res: Response) => {
-  const { leadIds, status } = req.body;
-  const count = db.bulkUpdateLeadStatus(leadIds, status, currentActiveUserId);
-  res.json({ success: true, count });
-});
+apiRouter.post(
+  '/leads/:id/convert',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = db.convertLeadToCustomer(req.params.id, req.body, req.user!.id);
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+apiRouter.post(
+  '/leads/bulk/assign',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { leadIds, assignedTo } = req.body;
+    const count = db.bulkAssignLeads(leadIds, assignedTo, req.user!.id);
+    res.json({ success: true, count });
+  }
+);
+
+apiRouter.post(
+  '/leads/bulk/status',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { leadIds, status } = req.body;
+    const count = db.bulkUpdateLeadStatus(leadIds, status, req.user!.id);
+    res.json({ success: true, count });
+  }
+);
 
 // --- Customers & Customer 360 ---
-apiRouter.get('/customers', (req: Request, res: Response) => {
+apiRouter.get('/customers', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getCustomers());
 });
 
-apiRouter.get('/customers/:id', (req: Request, res: Response) => {
+apiRouter.get('/customers/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const customer = db.getCustomerById(req.params.id);
   if (!customer) return res.status(404).json({ error: 'Customer not found' });
   res.json(customer);
 });
 
-apiRouter.get('/customers/:id/360', (req: Request, res: Response) => {
+apiRouter.get('/customers/:id/360', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const profile = db.getCustomer360(req.params.id);
   if (!profile) return res.status(404).json({ error: 'Customer not found' });
   res.json(profile);
 });
 
-apiRouter.post('/customers', (req: Request, res: Response) => {
-  try {
-    const cust = db.createCustomer(req.body, currentActiveUserId);
-    res.status(201).json(cust);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.post(
+  '/customers',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const cust = db.createCustomer(req.body, req.user!.id);
+      res.status(201).json(cust);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
-apiRouter.put('/customers/:id', (req: Request, res: Response) => {
-  const updated = db.updateCustomer(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Customer not found' });
-  res.json(updated);
-});
+apiRouter.put(
+  '/customers/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive', 'support_agent'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const updated = db.updateCustomer(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Customer not found' });
+    res.json(updated);
+  }
+);
 
-apiRouter.delete('/customers/:id', (req: Request, res: Response) => {
-  const ok = db.deleteCustomer(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Customer not found' });
-  res.json({ success: true });
-});
+apiRouter.delete(
+  '/customers/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const ok = db.deleteCustomer(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Customer not found' });
+    res.json({ success: true });
+  }
+);
 
 // --- Deals & Pipeline ---
-apiRouter.get('/deals', (req: Request, res: Response) => {
+apiRouter.get('/deals', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getDeals());
 });
 
-apiRouter.post('/deals', (req: Request, res: Response) => {
-  try {
-    const deal = db.createDeal(req.body, currentActiveUserId);
-    res.status(201).json(deal);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.get('/deals/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  const deal = db.getDealById(req.params.id);
+  if (!deal) return res.status(404).json({ error: 'Deal not found' });
+  res.json(deal);
+});
+
+apiRouter.post(
+  '/deals',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const deal = db.createDeal(req.body, req.user!.id);
+      res.status(201).json(deal);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
-apiRouter.put('/deals/:id', (req: Request, res: Response) => {
-  const updated = db.updateDeal(req.params.id, req.body, currentActiveUserId);
-  if (!updated) return res.status(404).json({ error: 'Deal not found' });
-  res.json(updated);
-});
+apiRouter.put(
+  '/deals/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const updated = db.updateDeal(req.params.id, req.body, req.user!.id);
+    if (!updated) return res.status(404).json({ error: 'Deal not found' });
+    res.json(updated);
+  }
+);
 
-apiRouter.delete('/deals/:id', (req: Request, res: Response) => {
-  const ok = db.deleteDeal(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Deal not found' });
-  res.json({ success: true });
+apiRouter.put(
+  '/deals/:id/stage',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'sales_executive'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const { stage } = req.body;
+    const updated = db.updateDeal(req.params.id, { stage }, req.user!.id);
+    if (!updated) return res.status(404).json({ error: 'Deal not found' });
+    res.json(updated);
+  }
+);
+
+apiRouter.delete(
+  '/deals/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const ok = db.deleteDeal(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Deal not found' });
+    res.json({ success: true });
+  }
+);
+
+apiRouter.get('/pipeline', authenticateUser, (_req: AuthenticatedRequest, res: Response) => {
+  res.json(db.getDeals());
 });
 
 // --- Tasks ---
-apiRouter.get('/tasks', (req: Request, res: Response) => {
+apiRouter.get('/tasks', authenticateUser, (_req: AuthenticatedRequest, res: Response) => {
   res.json(db.getTasks());
 });
 
-apiRouter.post('/tasks', (req: Request, res: Response) => {
+apiRouter.post('/tasks', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   try {
-    const task = db.createTask(req.body, currentActiveUserId);
+    const task = db.createTask(req.body, req.user!.id);
     res.status(201).json(task);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-apiRouter.put('/tasks/:id', (req: Request, res: Response) => {
-  const updated = db.updateTask(req.params.id, req.body, currentActiveUserId);
+apiRouter.put('/tasks/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  const updated = db.updateTask(req.params.id, req.body, req.user!.id);
   if (!updated) return res.status(404).json({ error: 'Task not found' });
   res.json(updated);
 });
 
-apiRouter.delete('/tasks/:id', (req: Request, res: Response) => {
+apiRouter.delete('/tasks/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const ok = db.deleteTask(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Task not found' });
   res.json({ success: true });
 });
 
-// --- Follow Ups ---
-apiRouter.get('/follow-ups', (req: Request, res: Response) => {
+// --- Follow-ups ---
+apiRouter.get('/follow-ups', authenticateUser, (_req: AuthenticatedRequest, res: Response) => {
   res.json(db.getFollowUps());
 });
 
-apiRouter.post('/follow-ups', (req: Request, res: Response) => {
+apiRouter.post('/follow-ups', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   try {
     const fu = db.createFollowUp(req.body);
     res.status(201).json(fu);
@@ -194,24 +485,18 @@ apiRouter.post('/follow-ups', (req: Request, res: Response) => {
   }
 });
 
-apiRouter.put('/follow-ups/:id', (req: Request, res: Response) => {
+apiRouter.put('/follow-ups/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const updated = db.updateFollowUp(req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: 'Follow-up not found' });
   res.json(updated);
 });
 
-apiRouter.delete('/follow-ups/:id', (req: Request, res: Response) => {
-  const ok = db.deleteFollowUp(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Follow-up not found' });
-  res.json({ success: true });
-});
-
 // --- Appointments ---
-apiRouter.get('/appointments', (req: Request, res: Response) => {
+apiRouter.get('/appointments', authenticateUser, (_req: AuthenticatedRequest, res: Response) => {
   res.json(db.getAppointments());
 });
 
-apiRouter.post('/appointments', (req: Request, res: Response) => {
+apiRouter.post('/appointments', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   try {
     const appt = db.createAppointment(req.body);
     res.status(201).json(appt);
@@ -220,102 +505,123 @@ apiRouter.post('/appointments', (req: Request, res: Response) => {
   }
 });
 
-apiRouter.put('/appointments/:id', (req: Request, res: Response) => {
+apiRouter.put('/appointments/:id', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const updated = db.updateAppointment(req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: 'Appointment not found' });
   res.json(updated);
 });
 
-apiRouter.delete('/appointments/:id', (req: Request, res: Response) => {
-  const ok = db.deleteAppointment(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Appointment not found' });
-  res.json({ success: true });
-});
-
 // --- Products & Services ---
-apiRouter.get('/products', (req: Request, res: Response) => {
+apiRouter.get('/products', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getProducts());
 });
 
-apiRouter.post('/products', (req: Request, res: Response) => {
-  try {
-    const prod = db.createProduct(req.body);
-    res.status(201).json(prod);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.post(
+  '/products',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const prod = db.createProduct(req.body);
+      res.status(201).json(prod);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
-apiRouter.put('/products/:id', (req: Request, res: Response) => {
-  const updated = db.updateProduct(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Product not found' });
-  res.json(updated);
-});
-
-apiRouter.delete('/products/:id', (req: Request, res: Response) => {
-  const ok = db.deleteProduct(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Product not found' });
-  res.json({ success: true });
-});
+apiRouter.put(
+  '/products/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const updated = db.updateProduct(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Product not found' });
+    res.json(updated);
+  }
+);
 
 // --- Invoices ---
-apiRouter.get('/invoices', (req: Request, res: Response) => {
-  res.json(db.getInvoices());
-});
-
-apiRouter.get('/invoices/:id', (req: Request, res: Response) => {
-  const inv = db.getInvoiceById(req.params.id);
-  if (!inv) return res.status(404).json({ error: 'Invoice not found' });
-  res.json(inv);
-});
-
-apiRouter.post('/invoices', (req: Request, res: Response) => {
-  try {
-    const inv = db.createInvoice(req.body, currentActiveUserId);
-    res.status(201).json(inv);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.get(
+  '/invoices',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    res.json(db.getInvoices());
   }
-});
+);
 
-apiRouter.put('/invoices/:id', (req: Request, res: Response) => {
-  const updated = db.updateInvoice(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Invoice not found' });
-  res.json(updated);
-});
+apiRouter.get(
+  '/invoices/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const inv = db.getInvoiceById(req.params.id);
+    if (!inv) return res.status(404).json({ error: 'Invoice not found' });
+    res.json(inv);
+  }
+);
 
-apiRouter.delete('/invoices/:id', (req: Request, res: Response) => {
-  const ok = db.deleteInvoice(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Invoice not found' });
-  res.json({ success: true });
-});
+apiRouter.post(
+  '/invoices',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const inv = db.createInvoice(req.body, req.user!.id);
+      res.status(201).json(inv);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+apiRouter.put(
+  '/invoices/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const updated = db.updateInvoice(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Invoice not found' });
+    res.json(updated);
+  }
+);
 
 // --- Payments ---
-apiRouter.get('/payments', (req: Request, res: Response) => {
-  res.json(db.getPayments());
-});
-
-apiRouter.post('/payments', (req: Request, res: Response) => {
-  try {
-    const pay = db.recordPayment(req.body, currentActiveUserId);
-    res.status(201).json(pay);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.get(
+  '/payments',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    res.json(db.getPayments());
   }
-});
+);
 
-// --- Activities & Audit Timeline ---
-apiRouter.get('/activities', (req: Request, res: Response) => {
+apiRouter.post(
+  '/payments',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'accountant'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const payment = db.recordPayment(req.body, req.user!.id);
+      res.status(201).json(payment);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+// --- Activities & Audit Logs ---
+apiRouter.get('/activities', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getActivities());
 });
 
-apiRouter.post('/activities', (req: Request, res: Response) => {
+apiRouter.post('/activities', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = db.getUserById(currentActiveUserId);
     const act = db.createActivity({
       ...req.body,
-      performedBy: currentActiveUserId,
-      performedByName: user?.name || 'System User',
+      performedBy: req.user!.id,
+      performedByName: req.user!.name,
     });
     res.status(201).json(act);
   } catch (err: any) {
@@ -324,16 +630,16 @@ apiRouter.post('/activities', (req: Request, res: Response) => {
 });
 
 // --- Documents ---
-apiRouter.get('/documents', (req: Request, res: Response) => {
+apiRouter.get('/documents', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getDocuments());
 });
 
-apiRouter.post('/documents', (req: Request, res: Response) => {
+apiRouter.post('/documents', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = db.getUserById(currentActiveUserId);
     const doc = db.createDocument({
       ...req.body,
-      uploadedBy: user?.name || 'Staff Member',
+      uploadedBy: req.user!.id,
+      uploadedByName: req.user!.name,
     });
     res.status(201).json(doc);
   } catch (err: any) {
@@ -341,24 +647,28 @@ apiRouter.post('/documents', (req: Request, res: Response) => {
   }
 });
 
-apiRouter.delete('/documents/:id', (req: Request, res: Response) => {
-  const ok = db.deleteDocument(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Document not found' });
-  res.json({ success: true });
-});
+apiRouter.delete(
+  '/documents/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin', 'manager'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const ok = db.deleteDocument(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Document not found' });
+    res.json({ success: true });
+  }
+);
 
 // --- Communications ---
-apiRouter.get('/communications', (req: Request, res: Response) => {
+apiRouter.get('/communications', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getCommunications());
 });
 
-apiRouter.post('/communications', (req: Request, res: Response) => {
+apiRouter.post('/communications', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = db.getUserById(currentActiveUserId);
     const comm = db.logCommunication({
       ...req.body,
-      loggedBy: currentActiveUserId,
-      loggedByName: user?.name || 'Staff Member',
+      loggedBy: req.user!.id,
+      loggedByName: req.user!.name,
     });
     res.status(201).json(comm);
   } catch (err: any) {
@@ -367,46 +677,49 @@ apiRouter.post('/communications', (req: Request, res: Response) => {
 });
 
 // --- Notifications ---
-apiRouter.get('/notifications', (req: Request, res: Response) => {
+apiRouter.get('/notifications', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getNotifications());
 });
 
-apiRouter.put('/notifications/:id/read', (req: Request, res: Response) => {
+apiRouter.put('/notifications/:id/read', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const ok = db.markNotificationAsRead(req.params.id);
   res.json({ success: ok });
 });
 
-apiRouter.post('/notifications/read-all', (req: Request, res: Response) => {
+apiRouter.post('/notifications/read-all', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   db.markAllNotificationsAsRead();
   res.json({ success: true });
 });
 
-// --- Users & Team ---
-apiRouter.get('/users', (req: Request, res: Response) => {
+// --- Users & Team Management ---
+apiRouter.get('/users', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(db.getUsers());
 });
 
-apiRouter.post('/users', (req: Request, res: Response) => {
-  try {
-    const newUser = {
-      id: `usr_${Date.now()}`,
-      name: req.body.name,
-      email: req.body.email,
-      role: req.body.role || 'sales_executive',
-      title: req.body.title || 'Staff Member',
-      department: req.body.department || 'Operations',
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-    db.getUsers().push(newUser as any);
-    res.status(201).json(newUser);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
+apiRouter.post(
+  '/users',
+  authenticateUser,
+  requireRoles('super_admin', 'admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { user } = db.createUserWithCredentials({
+        name: req.body.name,
+        email: req.body.email,
+        role: req.body.role || 'sales_executive',
+        title: req.body.title || 'Staff Member',
+        department: req.body.department || 'Operations',
+        phone: req.body.phone,
+        active: req.body.active !== false,
+      }, req.body.password || 'Orvexa2026!');
+      res.status(201).json(user);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
 // --- Settings ---
-apiRouter.get('/settings', (req: Request, res: Response) => {
+apiRouter.get('/settings', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   const crmSettings = db.getSettings();
   res.json({
     companyName: crmSettings.company.name,
@@ -419,10 +732,15 @@ apiRouter.get('/settings', (req: Request, res: Response) => {
   });
 });
 
-apiRouter.put('/settings', (req: Request, res: Response) => {
-  const updated = db.updateSettings(req.body);
-  res.json(updated);
-});
+apiRouter.put(
+  '/settings',
+  authenticateUser,
+  requireRoles('super_admin', 'admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const updated = db.updateSettings(req.body);
+    res.json(updated);
+  }
+);
 
 // Custom fields in-memory store
 const inMemoryCustomFields = [
@@ -431,62 +749,70 @@ const inMemoryCustomFields = [
   { id: 'cf_3', entity: 'deal', label: 'Security Review Sign-off', name: 'sec_signoff', type: 'dropdown', required: false, options: ['Pending', 'Approved', 'Waived'] },
 ];
 
-apiRouter.get('/custom-fields', (req: Request, res: Response) => {
+apiRouter.get('/custom-fields', authenticateUser, (req: AuthenticatedRequest, res: Response) => {
   res.json(inMemoryCustomFields);
 });
 
-apiRouter.post('/custom-fields', (req: Request, res: Response) => {
-  const newField = {
-    id: `cf_${Date.now()}`,
-    ...req.body,
-    createdAt: new Date().toISOString(),
-  };
-  inMemoryCustomFields.push(newField);
-  res.status(201).json(newField);
-});
+apiRouter.post(
+  '/custom-fields',
+  authenticateUser,
+  requireRoles('super_admin', 'admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const newField = {
+      id: `cf_${Date.now()}`,
+      ...req.body,
+      createdAt: new Date().toISOString(),
+    };
+    inMemoryCustomFields.push(newField);
+    res.status(201).json(newField);
+  }
+);
 
-apiRouter.delete('/custom-fields/:id', (req: Request, res: Response) => {
-  const idx = inMemoryCustomFields.findIndex((f) => f.id === req.params.id);
-  if (idx !== -1) inMemoryCustomFields.splice(idx, 1);
-  res.json({ success: true });
-});
+apiRouter.delete(
+  '/custom-fields/:id',
+  authenticateUser,
+  requireRoles('super_admin', 'admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const idx = inMemoryCustomFields.findIndex((f) => f.id === req.params.id);
+    if (idx !== -1) inMemoryCustomFields.splice(idx, 1);
+    res.json({ success: true });
+  }
+);
 
 // --- AI Assistant ---
-apiRouter.post('/ai/query', async (req: Request, res: Response) => {
+apiRouter.post('/ai/query', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
-    const user = db.getUserById(currentActiveUserId);
-    const result = await processCrmAiQuery(prompt, user?.role || 'super_admin');
+    const result = await processCrmAiQuery(prompt, req.user!.role);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-apiRouter.post('/ai/email', async (req: Request, res: Response) => {
+apiRouter.post('/ai/email', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { recipientName, company, type, context } = req.body;
     const prompt = `Write a professional B2B SaaS executive email for ORVEXA CRM to ${recipientName} at ${company}.
 Email Type: ${type}
 Context / Talking Points: ${context}
 Format as a clean, polished email ready to send with Subject: and Body:.`;
-    const result = await processCrmAiQuery(prompt, 'sales_executive');
+    const result = await processCrmAiQuery(prompt, req.user!.role);
     res.json({ emailDraft: result.answer });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-apiRouter.post('/ai/extract-tasks', async (req: Request, res: Response) => {
+apiRouter.post('/ai/extract-tasks', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { notes } = req.body;
     const prompt = `Extract all action items or tasks from these client notes:
 "${notes}"
 Respond with a JSON array of objects with keys: "title", "priority" ('low'|'medium'|'high'|'urgent'), and "dueDate" (YYYY-MM-DD format). If dates are ambiguous, pick plausible upcoming dates.`;
-    const result = await processCrmAiQuery(prompt, 'sales_executive');
-    
-    // Parse tasks or fallback
+    const result = await processCrmAiQuery(prompt, req.user!.role);
+
     let tasks = [];
     try {
       const match = result.answer.match(/\[[\s\S]*\]/);
@@ -505,22 +831,35 @@ Respond with a JSON array of objects with keys: "title", "priority" ('low'|'medi
   }
 });
 
-
 // --- Database Management & Export ---
-apiRouter.get('/database/export-sql', (req: Request, res: Response) => {
-  const sql = db.exportPostgreSQLDump();
-  res.setHeader('Content-Type', 'application/sql');
-  res.setHeader('Content-Disposition', 'attachment; filename="orvexa_crm_postgresql_supabase_schema.sql"');
-  res.send(sql);
-});
+apiRouter.get(
+  '/database/export-sql',
+  authenticateUser,
+  requireRoles('super_admin', 'admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const sql = db.exportPostgreSQLDump();
+    res.setHeader('Content-Type', 'application/sql');
+    res.setHeader('Content-Disposition', 'attachment; filename="orvexa_crm_postgresql_supabase_schema.sql"');
+    res.send(sql);
+  }
+);
 
-apiRouter.post('/database/reset', (req: Request, res: Response) => {
-  const refreshed = db.resetSeed();
-  res.json({ success: true, message: 'Database reset to default seed data successfully.', counts: {
-    leads: refreshed.leads.length,
-    customers: refreshed.customers.length,
-    deals: refreshed.deals.length,
-    invoices: refreshed.invoices.length,
-    payments: refreshed.payments.length,
-  }});
-});
+apiRouter.post(
+  '/database/reset',
+  authenticateUser,
+  requireRoles('super_admin'),
+  (req: AuthenticatedRequest, res: Response) => {
+    const refreshed = db.resetSeed();
+    res.json({
+      success: true,
+      message: 'Database reset to default seed data successfully.',
+      counts: {
+        leads: refreshed.leads.length,
+        customers: refreshed.customers.length,
+        deals: refreshed.deals.length,
+        invoices: refreshed.invoices.length,
+        payments: refreshed.payments.length,
+      },
+    });
+  }
+);

@@ -7,6 +7,8 @@ import React from 'react';
 import { CrmProvider, useCrm } from './context/CrmContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { LoginPage } from './components/auth/LoginPage';
+import { UserProfileModal } from './components/auth/UserProfileModal';
 import { ToastContainer } from './components/common/ToastContainer';
 import { GlobalSearchModal } from './components/common/GlobalSearchModal';
 import { QuickCreateModal } from './components/common/QuickCreateModal';
@@ -32,9 +34,40 @@ import { AiAssistantView } from './components/views/AiAssistantView';
 import { SettingsView } from './components/views/SettingsView';
 
 const MainContent: React.FC = () => {
-  const { activeView } = useCrm();
+  const { activeView, isAuthenticated, isLoadingSession, currentUser } = useCrm();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  // If currently verifying session
+  if (isLoadingSession) {
+    return (
+      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg font-mono shadow-xl shadow-blue-600/30 animate-pulse">
+            OX
+          </div>
+          <div className="text-center">
+            <h2 className="text-sm font-bold tracking-tight text-neutral-900 dark:text-neutral-100 font-mono">
+              ORVEXA CRM
+            </h2>
+            <p className="text-xs text-neutral-400 mt-1 font-mono">
+              Verifying enterprise security credentials...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Protected route check: if unauthenticated, redirect to LoginPage
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <>
+        <LoginPage />
+        <ToastContainer />
+      </>
+    );
+  }
 
   const renderView = () => {
     switch (activeView) {
@@ -50,6 +83,7 @@ const MainContent: React.FC = () => {
         return <PipelineView />;
       case 'tasks':
         return <TasksView />;
+      case 'follow-ups':
       case 'followups':
         return <FollowUpsView />;
       case 'calendar':
@@ -70,6 +104,7 @@ const MainContent: React.FC = () => {
         return <ReportsView />;
       case 'team':
         return <TeamView />;
+      case 'ai-assistant':
       case 'ai_assistant':
         return <AiAssistantView />;
       case 'settings':
@@ -99,9 +134,11 @@ const MainContent: React.FC = () => {
         </main>
       </div>
 
+      {/* Global Modals & Notifications */}
       <ToastContainer />
       <GlobalSearchModal />
       <QuickCreateModal />
+      <UserProfileModal />
     </div>
   );
 };
