@@ -1447,6 +1447,13 @@
       "createdAt": "2026-09-23T18:48:59.330Z",
       "expiresAt": "2026-09-24T18:48:59.330Z",
       "rememberMe": false
+    },
+    {
+      "token": "97e78d4ba06f1fdcf7740b6618d6169570fe6dd7d5eba02764a74abe593659a0",
+      "userId": "usr_super_admin",
+      "createdAt": "2026-09-24T08:18:14.960Z",
+      "expiresAt": "2026-09-25T08:18:14.960Z",
+      "rememberMe": false
     }
   ]
 }

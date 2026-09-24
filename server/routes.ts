@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db } from './db';
 import { processCrmAiQuery } from './ai';
-import { hashPassword, verifyPassword, generateResetToken } from './auth';
+import { hashPassword, verifyPassword, generateResetToken, ROLE_PERMISSIONS } from './auth';
 import { Role, User } from '../src/types/crm';
 
 export const apiRouter = Router();
@@ -66,46 +66,212 @@ export const requireRoles = (...allowedRoles: Role[]) => {
   };
 };
 
+export function getSafeEnvStatus() {
+  return {
+    SUPABASE_URL_PRESENT: !!process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY_PRESENT: !!process.env.SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY_PRESENT: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    VERCEL_PRESENT: !!process.env.VERCEL,
+    NODE_ENV: process.env.NODE_ENV || 'production',
+  };
+}
+
 // ============================================================================
 // AUTHENTICATION ROUTES (PUBLIC & PROTECTED)
 // ============================================================================
 
 /**
  * Public: Log in with email and password
+ * Implements strict stage-by-stage diagnostics:
+ * request_validation -> env_initialization -> supabase_auth/authentication -> user_profile -> workspace -> rbac -> session
  */
-apiRouter.post('/auth/login', (req: Request, res: Response) => {
+apiRouter.post('/auth/login', async (req: Request, res: Response) => {
+  let stage = 'request_validation';
+
   try {
     const { email, password, rememberMe } = req.body || {};
 
+    // Stage 1: Request Validation
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
-      return res.status(400).json({ error: 'Email and password are required.' });
+      return res.status(400).json({
+        success: false,
+        error: 'AUTH_DEBUG',
+        stage: 'request_validation',
+        message: 'Email and password are required fields.',
+        env_status: getSafeEnvStatus(),
+      });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-    const user = db.getUserByEmail(trimmedEmail);
+    if (!trimmedEmail.includes('@') || password.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'AUTH_DEBUG',
+        stage: 'request_validation',
+        message: 'Invalid email address format.',
+        env_status: getSafeEnvStatus(),
+      });
+    }
+
+    // Stage 2: Environment & Provider Detection
+    stage = 'env_initialization';
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+    // Stage 3: Supabase Authentication (if Supabase credentials provided)
+    if (isSupabaseConfigured) {
+      stage = 'supabase_initialization';
+      try {
+        stage = 'supabase_auth';
+        const supabaseRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+          method: 'POST',
+          headers: {
+            apikey: supabaseAnonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: trimmedEmail, password }),
+        });
+
+        const supabaseData = await supabaseRes.json().catch(() => ({}));
+        if (!supabaseRes.ok) {
+          console.warn(`[AUTH] Supabase Auth rejected for ${trimmedEmail}:`, supabaseData?.error_description || supabaseData?.msg);
+          return res.status(401).json({
+            success: false,
+            error: 'AUTH_DEBUG',
+            stage: 'supabase_auth',
+            message: supabaseData?.error_description || supabaseData?.msg || 'Supabase authentication failed. Please verify credentials.',
+            env_status: getSafeEnvStatus(),
+          });
+        }
+      } catch (sbErr: any) {
+        console.error('[AUTH] Supabase connection error:', sbErr?.message);
+        return res.status(500).json({
+          success: false,
+          error: 'AUTH_DEBUG',
+          stage: 'supabase_initialization',
+          message: `Unable to connect to Supabase Auth endpoint: ${sbErr?.message || 'Network error'}`,
+          env_status: getSafeEnvStatus(),
+        });
+      }
+    }
+
+    // Stage 4: User Profile & Local Authentication
+    stage = 'user_profile';
+    let user = db.getUserByEmail(trimmedEmail);
+
+    if (!isSupabaseConfigured) {
+      stage = 'authentication';
+      if (!user) {
+        console.warn(`[AUTH] Login failed: User not found for ${trimmedEmail}`);
+        return res.status(401).json({
+          success: false,
+          error: 'AUTH_DEBUG',
+          stage: 'authentication',
+          message: 'Invalid email or password.',
+          env_status: getSafeEnvStatus(),
+        });
+      }
+
+      if (user.active === false) {
+        console.warn(`[AUTH] Login rejected: Account inactive for ${trimmedEmail}`);
+        return res.status(403).json({
+          success: false,
+          error: 'AUTH_DEBUG',
+          stage: 'user_profile',
+          message: 'This account has been disabled. Please contact your administrator.',
+          env_status: getSafeEnvStatus(),
+        });
+      }
+
+      const cred = db.getCredentialByEmail(trimmedEmail);
+      if (!cred) {
+        console.warn(`[AUTH] Login failed: Missing credentials record for ${trimmedEmail}`);
+        return res.status(401).json({
+          success: false,
+          error: 'AUTH_DEBUG',
+          stage: 'authentication',
+          message: 'Invalid email or password.',
+          env_status: getSafeEnvStatus(),
+        });
+      }
+
+      const isValid = verifyPassword(password, cred.passwordHash, cred.salt);
+      if (!isValid) {
+        console.warn(`[AUTH] Login failed: Invalid password verification for ${trimmedEmail}`);
+        return res.status(401).json({
+          success: false,
+          error: 'AUTH_DEBUG',
+          stage: 'authentication',
+          message: 'Invalid email or password.',
+          env_status: getSafeEnvStatus(),
+        });
+      }
+    } else {
+      // If authenticated via Supabase, ensure CRM user profile exists
+      if (!user) {
+        user = {
+          id: `usr_${Date.now()}`,
+          name: trimmedEmail.split('@')[0].replace(/[._]/g, ' '),
+          email: trimmedEmail,
+          role: 'super_admin',
+          title: 'System Administrator',
+          department: 'Executive Leadership',
+          active: true,
+          createdAt: new Date().toISOString(),
+        };
+        db.addUser(user);
+      }
+    }
+
     if (!user) {
-      console.warn(`[AUTH] Login failed: User not found for ${trimmedEmail}`);
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      return res.status(401).json({
+        success: false,
+        error: 'AUTH_DEBUG',
+        stage: 'user_profile',
+        message: 'Profile record could not be loaded.',
+        env_status: getSafeEnvStatus(),
+      });
     }
 
-    if (user.active === false) {
-      console.warn(`[AUTH] Login rejected: Account inactive for ${trimmedEmail}`);
-      return res.status(403).json({ error: 'This account has been disabled. Please contact your administrator.' });
+    // Stage 5: Workspace Lookup
+    stage = 'workspace';
+    const company = db.getCompany();
+    if (!company) {
+      return res.status(500).json({
+        success: false,
+        error: 'AUTH_DEBUG',
+        stage: 'workspace',
+        message: 'Company workspace metadata is uninitialized.',
+        env_status: getSafeEnvStatus(),
+      });
     }
 
-    const cred = db.getCredentialByEmail(trimmedEmail);
-    if (!cred) {
-      console.warn(`[AUTH] Login failed: Missing credentials record for ${trimmedEmail}`);
-      return res.status(401).json({ error: 'Invalid email or password.' });
+    // Stage 6: RBAC Verification
+    stage = 'rbac';
+    if (!user.role || !ROLE_PERMISSIONS[user.role]) {
+      return res.status(500).json({
+        success: false,
+        error: 'AUTH_DEBUG',
+        stage: 'rbac',
+        message: `User role '${user.role}' has no valid permissions configuration.`,
+        env_status: getSafeEnvStatus(),
+      });
     }
 
-    const isValid = verifyPassword(password, cred.passwordHash, cred.salt);
-    if (!isValid) {
-      console.warn(`[AUTH] Login failed: Invalid password verification for ${trimmedEmail}`);
-      return res.status(401).json({ error: 'Invalid email or password.' });
-    }
-
+    // Stage 7: Session Creation
+    stage = 'session';
     const session = db.createSession(user.id, !!rememberMe);
+    if (!session || !session.token) {
+      return res.status(500).json({
+        success: false,
+        error: 'AUTH_DEBUG',
+        stage: 'session',
+        message: 'Failed to generate session record.',
+        env_status: getSafeEnvStatus(),
+      });
+    }
+
     console.log(`[AUTH] Login successful: ${user.email} (${user.role}) - session created`);
 
     return res.json({
@@ -113,13 +279,16 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
       token: session.token,
       user,
       expiresAt: session.expiresAt,
-      company: db.getCompany(),
+      company,
     });
   } catch (err: any) {
-    console.error('[AUTH] Critical Login exception:', err?.stack || err?.message || err);
+    console.error(`[AUTH] Critical Login exception at stage '${stage}':`, err?.stack || err?.message || err);
     return res.status(500).json({
-      error: 'Unable to sign in. Please try again.',
-      ...(process.env.NODE_ENV !== 'production' ? { debug: err?.message } : {}),
+      success: false,
+      error: 'AUTH_DEBUG',
+      stage,
+      message: `Internal server failure during ${stage}: ${err?.message || 'Unknown error'}`,
+      env_status: getSafeEnvStatus(),
     });
   }
 });

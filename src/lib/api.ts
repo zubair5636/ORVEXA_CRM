@@ -97,8 +97,27 @@ class ApiClient {
 
       let errorMsg = `Unable to complete request (${res.status}).`;
       try {
-        const errJson = await res.json();
-        if (errJson.error) errorMsg = errJson.error;
+        const rawText = await res.text();
+        try {
+          const errJson = JSON.parse(rawText);
+          if (errJson.stage && errJson.message) {
+            errorMsg = `[AUTH_DEBUG] Stage: ${errJson.stage} — ${errJson.message}`;
+          } else if (errJson.error && errJson.message && errJson.error !== errJson.message) {
+            errorMsg = `${errJson.error}: ${errJson.message}`;
+          } else if (errJson.error) {
+            errorMsg = errJson.error;
+          } else if (errJson.message) {
+            errorMsg = errJson.message;
+          }
+        } catch {
+          if (rawText && rawText.length < 250 && !rawText.includes('<html') && !rawText.includes('<!DOCTYPE')) {
+            errorMsg = `Server error (${res.status}): ${rawText.trim()}`;
+          } else if (res.statusText) {
+            errorMsg = `Request failed (${res.status}): ${res.statusText}`;
+          } else {
+            errorMsg = `Server execution error (${res.status}). Serverless function crashed or timed out.`;
+          }
+        }
       } catch (_) {
         if (res.statusText) errorMsg = `Request failed: ${res.statusText}`;
       }

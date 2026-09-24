@@ -34,8 +34,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Mount API endpoints under /api
+// Mount API endpoints under /api and /
 app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {

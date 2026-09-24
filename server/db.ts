@@ -1395,6 +1395,17 @@ class DatabaseStore {
     return user;
   }
 
+  public addUser(user: User): User {
+    const existingIdx = this.data.users.findIndex((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+    if (existingIdx >= 0) {
+      this.data.users[existingIdx] = user;
+    } else {
+      this.data.users.push(user);
+    }
+    this.saveToDisk();
+    return user;
+  }
+
   public createUserWithCredentials(
     userData: Omit<User, 'id' | 'createdAt'>,
     password = 'Orvexa2026!'
