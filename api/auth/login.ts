@@ -1,19 +1,49 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { db } from '../../server/db';
 import { verifyPassword, ROLE_PERMISSIONS } from '../../server/auth';
-import { getSafeEnvStatus } from '../../server/routes';
+
+function getSafeEnvStatus() {
+  return {
+    SUPABASE_URL_PRESENT: !!process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY_PRESENT: !!process.env.SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY_PRESENT: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    VERCEL_PRESENT: !!process.env.VERCEL,
+    NODE_ENV: process.env.NODE_ENV || 'production',
+  };
+}
 
 // Helper to safely extract JSON body across Node stream or pre-parsed Vercel serverless request
 async function getRequestBody(req: IncomingMessage): Promise<any> {
-  if ((req as any).body && typeof (req as any).body === 'object') {
-    return (req as any).body;
+  const reqAny = req as any;
+  if (reqAny.body) {
+    if (typeof reqAny.body === 'object') return reqAny.body;
+    if (typeof reqAny.body === 'string') {
+      try { return JSON.parse(reqAny.body); } catch { return {}; }
+    }
+    if (Buffer.isBuffer(reqAny.body)) {
+      try { return JSON.parse(reqAny.body.toString('utf-8')); } catch { return {}; }
+    }
   }
+
+  if (reqAny.readableEnded || reqAny.complete) {
+    return {};
+  }
+
   return new Promise((resolve) => {
     let body = '';
-    req.on('data', (chunk) => {
+    const timer = setTimeout(() => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch {
+        resolve({});
+      }
+    }, 400);
+
+    req.on('data', (chunk: any) => {
       body += chunk;
     });
     req.on('end', () => {
+      clearTimeout(timer);
       try {
         resolve(body ? JSON.parse(body) : {});
       } catch {
@@ -21,6 +51,7 @@ async function getRequestBody(req: IncomingMessage): Promise<any> {
       }
     });
     req.on('error', () => {
+      clearTimeout(timer);
       resolve({});
     });
   });
@@ -28,6 +59,7 @@ async function getRequestBody(req: IncomingMessage): Promise<any> {
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   let stage = 'request_validation';
+  console.log('[AUTH DEBUG] login request received');
 
   res.setHeader('Content-Type', 'application/json');
 
@@ -81,6 +113,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     // 2. Env & Provider Initialization
     stage = 'env_initialization';
+    console.log('[AUTH DEBUG] environment initialized');
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
     const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
@@ -88,8 +121,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     // 3. Supabase Auth (if configured)
     if (isSupabaseConfigured) {
       stage = 'supabase_initialization';
+      console.log('[AUTH DEBUG] Supabase client initialized');
       try {
         stage = 'supabase_auth';
+        console.log('[AUTH DEBUG] authentication started (Supabase)');
         const supabaseRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
           method: 'POST',
           headers: {
@@ -101,6 +136,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
         const supabaseData = await supabaseRes.json().catch(() => ({}));
         if (!supabaseRes.ok) {
+          console.log('[AUTH DEBUG] authentication failed (Supabase credentials rejected)');
           res.statusCode = 401;
           res.end(JSON.stringify({
             success: false,
@@ -111,7 +147,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           }));
           return;
         }
+        console.log('[AUTH DEBUG] authentication completed (Supabase)');
       } catch (sbErr: any) {
+        console.error('[AUTH DEBUG] Supabase connection error:', sbErr?.message);
         res.statusCode = 500;
         res.end(JSON.stringify({
           success: false,
@@ -126,11 +164,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     // 4. User Profile & Local Authentication
     stage = 'user_profile';
+    console.log('[AUTH DEBUG] profile lookup started');
     let user = db.getUserByEmail(trimmedEmail);
 
     if (!isSupabaseConfigured) {
       stage = 'authentication';
+      console.log('[AUTH DEBUG] authentication started (Local CRM)');
       if (!user) {
+        console.log('[AUTH DEBUG] authentication failed: user not found');
         res.statusCode = 401;
         res.end(JSON.stringify({
           success: false,
@@ -143,6 +184,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }
 
       if (user.active === false) {
+        console.log('[AUTH DEBUG] user inactive');
         res.statusCode = 403;
         res.end(JSON.stringify({
           success: false,
@@ -156,6 +198,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const cred = db.getCredentialByEmail(trimmedEmail);
       if (!cred) {
+        console.log('[AUTH DEBUG] authentication failed: missing credentials');
         res.statusCode = 401;
         res.end(JSON.stringify({
           success: false,
@@ -169,6 +212,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const isValid = verifyPassword(password, cred.passwordHash, cred.salt);
       if (!isValid) {
+        console.log('[AUTH DEBUG] authentication failed: password mismatch');
         res.statusCode = 401;
         res.end(JSON.stringify({
           success: false,
@@ -179,6 +223,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         }));
         return;
       }
+      console.log('[AUTH DEBUG] authentication completed (Local CRM)');
     } else {
       // Supabase authenticated: provision/load CRM user profile
       if (!user) {
@@ -207,6 +252,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }));
       return;
     }
+    console.log('[AUTH DEBUG] profile lookup completed');
 
     // 5. Workspace Lookup
     stage = 'workspace';
@@ -222,6 +268,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }));
       return;
     }
+    console.log('[AUTH DEBUG] workspace lookup completed');
 
     // 6. RBAC Verification
     stage = 'rbac';
@@ -236,6 +283,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }));
       return;
     }
+    console.log('[AUTH DEBUG] rbac verification completed');
 
     // 7. Session Creation
     stage = 'session';
@@ -251,6 +299,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }));
       return;
     }
+    console.log('[AUTH DEBUG] session creation completed');
 
     res.statusCode = 200;
     res.end(JSON.stringify({
@@ -261,13 +310,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       company,
     }));
   } catch (err: any) {
-    console.error(`[API /auth/login] Exception at stage '${stage}':`, err?.stack || err?.message || err);
+    console.error(`[AUTH DEBUG] Server exception during ${stage}:`, err?.message || err);
     res.statusCode = 500;
     res.end(JSON.stringify({
       success: false,
       error: 'AUTH_DEBUG',
       stage,
-      message: `Server exception during ${stage}: ${err?.message || 'Unknown error'}`,
+      message: 'A safe internal server error occurred. Please check function logs.',
       env_status: getSafeEnvStatus(),
     }));
   }

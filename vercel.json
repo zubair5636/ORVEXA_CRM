@@ -2,6 +2,14 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/auth/login",
+      "destination": "/api/auth/login"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "/api/auth/me"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },
