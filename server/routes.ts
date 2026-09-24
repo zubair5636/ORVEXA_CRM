@@ -84,24 +84,29 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
     const trimmedEmail = email.trim().toLowerCase();
     const user = db.getUserByEmail(trimmedEmail);
     if (!user) {
+      console.warn(`[AUTH] Login failed: User not found for ${trimmedEmail}`);
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     if (user.active === false) {
+      console.warn(`[AUTH] Login rejected: Account inactive for ${trimmedEmail}`);
       return res.status(403).json({ error: 'This account has been disabled. Please contact your administrator.' });
     }
 
     const cred = db.getCredentialByEmail(trimmedEmail);
     if (!cred) {
+      console.warn(`[AUTH] Login failed: Missing credentials record for ${trimmedEmail}`);
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const isValid = verifyPassword(password, cred.passwordHash, cred.salt);
     if (!isValid) {
+      console.warn(`[AUTH] Login failed: Invalid password verification for ${trimmedEmail}`);
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const session = db.createSession(user.id, !!rememberMe);
+    console.log(`[AUTH] Login successful: ${user.email} (${user.role}) - session created`);
 
     return res.json({
       success: true,
@@ -111,8 +116,11 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
       company: db.getCompany(),
     });
   } catch (err: any) {
-    console.error('[AUTH] Login processing error:', err?.message || err);
-    return res.status(500).json({ error: 'Unable to sign in. Please try again.' });
+    console.error('[AUTH] Critical Login exception:', err?.stack || err?.message || err);
+    return res.status(500).json({
+      error: 'Unable to sign in. Please try again.',
+      ...(process.env.NODE_ENV !== 'production' ? { debug: err?.message } : {}),
+    });
   }
 });
 
