@@ -1461,6 +1461,20 @@
       "createdAt": "2026-09-24T08:38:29.762Z",
       "expiresAt": "2026-09-25T08:38:29.762Z",
       "rememberMe": false
+    },
+    {
+      "token": "dab0c6b66401bbe93e13d53092bcc463c561176ad714d1cbfeb905adb54ef313",
+      "userId": "usr_super_admin",
+      "createdAt": "2026-09-24T08:42:32.153Z",
+      "expiresAt": "2026-10-24T08:42:32.153Z",
+      "rememberMe": true
+    },
+    {
+      "token": "f6e5890bf0068827b034ba07efad3bfd762c309d1d5aefd48177a006c64f4128",
+      "userId": "usr_super_admin",
+      "createdAt": "2026-09-24T08:47:29.029Z",
+      "expiresAt": "2026-09-25T08:47:29.029Z",
+      "rememberMe": false
     }
   ]
 }

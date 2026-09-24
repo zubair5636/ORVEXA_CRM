@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, Notification, CRMSettings } from '../types/crm';
 import { api } from '../lib/api';
+import {
+  supabase,
+  isSupabaseConfigured,
+  fetchUserProfile,
+  fetchCompanyTeam,
+  mapProfileToCrmUser,
+} from '../lib/supabase';
 
 export interface ToastMessage {
   id: string;
@@ -136,38 +143,92 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
-    const token = api.getToken();
-    if (!token) {
-      if (isMounted) {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-        setIsLoadingSession(false);
-      }
-      return;
-    }
+    const initAuthSession = async () => {
+      // 1. If Supabase is configured, check Supabase Auth session first
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.warn('[AUTH] Supabase session lookup error:', error.message);
+          }
 
-    api.getCurrentUser()
-      .then((data) => {
+          if (session?.access_token && session.user) {
+            api.setToken(session.access_token, true);
+            const profile = await fetchUserProfile(session.user.id);
+            const user = mapProfileToCrmUser(session.user, profile);
+            if (isMounted) {
+              setCurrentUser(user);
+              setIsAuthenticated(true);
+              setIsLoadingSession(false);
+            }
+            try {
+              const team = await fetchCompanyTeam(profile?.company_id);
+              if (isMounted && team.length > 0) setAllUsers(team);
+            } catch (_) {}
+            return;
+          }
+        } catch (sbErr) {
+          console.error('[AUTH] Supabase session initialization exception:', sbErr);
+        }
+      }
+
+      // 2. Check local/API session token
+      const token = api.getToken();
+      if (!token) {
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          setIsLoadingSession(false);
+        }
+        return;
+      }
+
+      try {
+        const data = await api.getCurrentUser();
         if (!isMounted) return;
         setCurrentUser(data.user);
         setAllUsers(data.allUsers || []);
         setIsAuthenticated(true);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.warn('[AUTH] Stored token invalid:', err);
         if (!isMounted) return;
         api.setToken(null);
         setCurrentUser(null);
         setIsAuthenticated(false);
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) {
           setIsLoadingSession(false);
         }
+      }
+    };
+
+    initAuthSession();
+
+    // Supabase auth state listener
+    let authListener: { subscription?: { unsubscribe: () => void } } | null = null;
+    if (isSupabaseConfigured() && supabase) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!isMounted) return;
+        if (event === 'SIGNED_IN' && session?.user) {
+          api.setToken(session.access_token, true);
+          const profile = await fetchUserProfile(session.user.id);
+          const user = mapProfileToCrmUser(session.user, profile);
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        } else if (event === 'SIGNED_OUT') {
+          api.setToken(null);
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
       });
+      authListener = data;
+    }
 
     return () => {
       isMounted = false;
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+      }
     };
   }, []);
 
@@ -186,6 +247,44 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Real Login
   const login = async (credentials: { email: string; password: string; rememberMe?: boolean }): Promise<User> => {
+    // 1. Supabase Auth (Primary Production Source of Truth)
+    if (isSupabaseConfigured() && supabase) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email.trim(),
+        password: credentials.password,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Supabase authentication failed.');
+      }
+
+      if (!data.user || !data.session) {
+        throw new Error('No user session returned from Supabase Auth.');
+      }
+
+      api.setToken(data.session.access_token, !!credentials.rememberMe);
+      const profile = await fetchUserProfile(data.user.id);
+      const user = mapProfileToCrmUser(data.user, profile);
+
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+
+      try {
+        const team = await fetchCompanyTeam(profile?.company_id);
+        if (team.length > 0) setAllUsers(team);
+      } catch (_) {}
+
+      triggerRefresh();
+      showToast({
+        type: 'success',
+        title: `Welcome back, ${user.name}`,
+        message: `Signed in as ${user.role.replace('_', ' ').toUpperCase()} (${user.department})`,
+      });
+
+      return user;
+    }
+
+    // 2. API login fallback
     const res = await api.login(credentials);
     setCurrentUser(res.user);
     setIsAuthenticated(true);
@@ -208,9 +307,17 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Real Logout
   const logout = async () => {
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('[AUTH] Supabase signOut error:', err);
+      }
+    }
     try {
       await api.logout();
     } catch (_) {}
+    api.setToken(null);
     setCurrentUser(null);
     setIsAuthenticated(false);
     showToast({
@@ -222,11 +329,26 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Forgot Password
   const forgotPassword = async (email: string) => {
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) throw new Error(error.message);
+      return { success: true, message: 'Password recovery email sent by Supabase Auth.' };
+    }
     return api.forgotPassword(email);
   };
 
   // Reset Password
   const resetPassword = async (token: string, newPassword: string) => {
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw new Error(error.message);
+      showToast({
+        type: 'success',
+        title: 'Password Updated',
+        message: 'Your Supabase account password has been updated.',
+      });
+      return { success: true, message: 'Password updated successfully.' };
+    }
     const res = await api.resetPassword(token, newPassword);
     showToast({
       type: 'success',

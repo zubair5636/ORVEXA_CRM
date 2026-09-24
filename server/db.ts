@@ -1222,6 +1222,11 @@ class DatabaseStore {
   }
 
   private saveToDisk(dataToSave?: DatabaseSchema) {
+    // In production or Vercel serverless containers, filesystem is strictly read-only.
+    // Cloud persistence is handled by Supabase PostgreSQL.
+    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+      return;
+    }
     try {
       if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -1229,7 +1234,7 @@ class DatabaseStore {
       const data = dataToSave || this.data;
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
     } catch (err) {
-      console.error('[DB] Failed to persist database to disk:', err);
+      // Never throw unhandled exception
     }
   }
 

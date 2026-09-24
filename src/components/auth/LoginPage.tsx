@@ -14,6 +14,7 @@ import {
   Moon,
   KeyRound,
 } from 'lucide-react';
+import { isSupabaseConfigured } from '../../lib/supabase';
 
 export const LoginPage: React.FC = () => {
   const { login, forgotPassword, resetPassword, theme, toggleTheme } = useCrm();
@@ -146,7 +147,7 @@ export const LoginPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-100 dark:bg-neutral-800/60 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700/60">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>PBKDF2 SHA-512 Encrypted</span>
+            <span>{isSupabaseConfigured() ? 'Supabase PostgreSQL Auth' : 'PostgreSQL Multi-Tenant Auth'}</span>
           </div>
 
           <button

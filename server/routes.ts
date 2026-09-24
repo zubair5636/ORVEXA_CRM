@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { db } from './db';
 import { processCrmAiQuery } from './ai';
 import { hashPassword, verifyPassword, generateResetToken, ROLE_PERMISSIONS } from './auth';
+import { verifySupabaseToken } from './supabase';
 import { Role, User } from '../src/types/crm';
 
 export const apiRouter = Router();
@@ -16,7 +17,7 @@ export interface AuthenticatedRequest extends Request {
 // AUTHENTICATION & AUTHORIZATION MIDDLEWARE
 // ============================================================================
 
-export const authenticateUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.substring(7).trim()
@@ -26,6 +27,24 @@ export const authenticateUser = (req: AuthenticatedRequest, res: Response, next:
     return res.status(401).json({ error: 'Authentication required. Please sign in.' });
   }
 
+  // 1. Supabase JWT Authentication
+  if (token.split('.').length === 3) {
+    try {
+      const sbUser = await verifySupabaseToken(token);
+      if (sbUser) {
+        if (sbUser.active === false) {
+          return res.status(403).json({ error: 'Account has been deactivated. Please contact an administrator.' });
+        }
+        req.user = sbUser;
+        req.sessionToken = token;
+        return next();
+      }
+    } catch (sbErr) {
+      console.warn('[AUTH] Supabase token verification failed, checking local sessions:', sbErr);
+    }
+  }
+
+  // 2. Session store verification
   const session = db.getSession(token);
   if (!session) {
     return res.status(401).json({ error: 'Session expired or invalid. Please sign in again.' });

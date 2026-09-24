@@ -38,20 +38,56 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
-    const session = db.getSession(token);
-    if (!session) {
-      res.statusCode = 401;
-      res.end(JSON.stringify({
-        success: false,
-        error: 'AUTH_DEBUG',
-        stage: 'session',
-        message: 'Session has expired or is invalid. Please sign in again.',
-        env_status: getSafeEnvStatus(),
-      }));
-      return;
+    let user = null;
+
+    // If token is a Supabase JWT
+    if (token.split('.').length === 3 && process.env.SUPABASE_URL && (process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+      try {
+        const sbUrl = process.env.SUPABASE_URL.replace(/\/$/, '');
+        const sbKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+        const userRes = await fetch(`${sbUrl}/auth/v1/user`, {
+          headers: {
+            apikey: sbKey,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (userRes.ok) {
+          const sbUserData = await userRes.json();
+          if (sbUserData?.id) {
+            user = db.getUserByEmail(sbUserData.email || '') || {
+              id: sbUserData.id,
+              name: sbUserData.user_metadata?.name || sbUserData.email?.split('@')[0] || 'User',
+              email: sbUserData.email || '',
+              role: sbUserData.user_metadata?.role || 'sales_executive',
+              title: sbUserData.user_metadata?.title || 'Team Member',
+              department: sbUserData.user_metadata?.department || 'Operations',
+              active: true,
+              createdAt: sbUserData.created_at || new Date().toISOString(),
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('[AUTH DEBUG] Supabase /auth/v1/user fetch error:', err);
+      }
     }
 
-    const user = db.getUserById(session.userId);
+    if (!user) {
+      const session = db.getSession(token);
+      if (!session) {
+        res.statusCode = 401;
+        res.end(JSON.stringify({
+          success: false,
+          error: 'AUTH_DEBUG',
+          stage: 'session',
+          message: 'Session has expired or is invalid. Please sign in again.',
+          env_status: getSafeEnvStatus(),
+        }));
+        return;
+      }
+
+      user = db.getUserById(session.userId);
+    }
+
     if (!user || user.active === false) {
       res.statusCode = 403;
       res.end(JSON.stringify({
